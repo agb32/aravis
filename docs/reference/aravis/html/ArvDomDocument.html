@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>ArvDomDocument</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="ch07.html" title="DOM">
+<link rel="prev" href="aravis-ArvDomNamedNodeMap.html" title="ArvDomNamedNodeMap">
+<link rel="next" href="aravis-ArvDomDocumentFragment.html" title="ArvDomDocumentFragment">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+<tr valign="middle">
+<td><a accesskey="p" href="aravis-ArvDomNamedNodeMap.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="ch07.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="aravis-ArvDomDocumentFragment.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr>
+<tr><td colspan="5" class="shortcuts">
+<a href="#ArvDomDocument.synopsis" class="shortcut">Top</a>
+                   | 
+                  <a href="#ArvDomDocument.description" class="shortcut">Description</a>
+                   | 
+                  <a href="#ArvDomDocument.object-hierarchy" class="shortcut">Object Hierarchy</a>
+</td></tr>
+</table>
+<div class="refentry">
+<a name="ArvDomDocument"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="ArvDomDocument.top_of_page"></a>ArvDomDocument</span></h2>
+<p>ArvDomDocument — Base class for DOM document nodes</p>
+</td>
+<td valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsynopsisdiv">
+<a name="ArvDomDocument.synopsis"></a><h2>Synopsis</h2>
+<pre class="synopsis">                    <a class="link" href="ArvDomDocument.html#ArvDomDocument-struct" title="ArvDomDocument">ArvDomDocument</a>;
+<a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    (<a class="link" href="ArvDomDocument.html#ArvDomDocumentCreateFunction" title="ArvDomDocumentCreateFunction ()">*ArvDomDocumentCreateFunction</a>)     (<em class="parameter"><code><span class="type">void</span></code></em>);
+<a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    <a class="link" href="ArvDomDocument.html#arv-dom-implementation-create-document" title="arv_dom_implementation_create_document ()">arv_dom_implementation_create_document</a>
+                                                        (<em class="parameter"><code>const <span class="type">char</span> *namespace_uri</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *qualified_name</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-implementation-add-document-type" title="arv_dom_implementation_add_document_type ()">arv_dom_implementation_add_document_type</a>
+                                                        (<em class="parameter"><code>const <span class="type">char</span> *qualified_name</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/gobject/unstable/gobject-Type-Information.html#GType"><span class="type">GType</span></a> document_type</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-implementation-cleanup" title="arv_dom_implementation_cleanup ()">arv_dom_implementation_cleanup</a>      (<em class="parameter"><code><span class="type">void</span></code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-append-from-memory" title="arv_dom_document_append_from_memory ()">arv_dom_document_append_from_memory</a> (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *document</code></em>,
+                                                         <em class="parameter"><code><a class="link" href="ArvDomNode.html" title="ArvDomNode"><span class="type">ArvDomNode</span></a> *node</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    <a class="link" href="ArvDomDocument.html#arv-dom-document-new-from-memory" title="arv_dom_document_new_from_memory ()">arv_dom_document_new_from_memory</a>    (<em class="parameter"><code>const <span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    <a class="link" href="ArvDomDocument.html#arv-dom-document-new-from-path" title="arv_dom_document_new_from_path ()">arv_dom_document_new_from_path</a>      (<em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    <a class="link" href="ArvDomDocument.html#arv-dom-document-new-from-url" title="arv_dom_document_new_from_url ()">arv_dom_document_new_from_url</a>       (<em class="parameter"><code>const <span class="type">char</span> *url</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-save-to-stream" title="arv_dom_document_save_to_stream ()">arv_dom_document_save_to_stream</a>     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *document</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/gio/unstable/GOutputStream.html"><span class="type">GOutputStream</span></a> *stream</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-save-to-memory" title="arv_dom_document_save_to_memory ()">arv_dom_document_save_to_memory</a>     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> **buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> *size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-save-to-path" title="arv_dom_document_save_to_path ()">arv_dom_document_save_to_path</a>       (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-save-to-url" title="arv_dom_document_save_to_url ()">arv_dom_document_save_to_url</a>        (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="returnvalue">ArvDomElement</span></a> *     <a class="link" href="ArvDomDocument.html#arv-dom-document-get-document-element" title="arv_dom_document_get_document_element ()">arv_dom_document_get_document_element</a>
+                                                        (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>);
+<a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="returnvalue">ArvDomElement</span></a> *     <a class="link" href="ArvDomDocument.html#arv-dom-document-create-element" title="arv_dom_document_create_element ()">arv_dom_document_create_element</a>     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *tag_name</code></em>);
+<span class="returnvalue">ArvDomText</span> *        <a class="link" href="ArvDomDocument.html#arv-dom-document-create-text-node" title="arv_dom_document_create_text_node ()">arv_dom_document_create_text_node</a>   (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *data</code></em>);
+const <span class="returnvalue">char</span> *        <a class="link" href="ArvDomDocument.html#arv-dom-document-get-url" title="arv_dom_document_get_url ()">arv_dom_document_get_url</a>            (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-set-url" title="arv_dom_document_set_url ()">arv_dom_document_set_url</a>            (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *url</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomDocument.html#arv-dom-document-set-path" title="arv_dom_document_set_path ()">arv_dom_document_set_path</a>           (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>);
+<span class="returnvalue">void</span> *              <a class="link" href="ArvDomDocument.html#arv-dom-document-get-href-data" title="arv_dom_document_get_href_data ()">arv_dom_document_get_href_data</a>      (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *href</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *size</code></em>);
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvDomDocument.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="synopsis">
+  <a href="http://library.gnome.org/devel/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+   +----<a class="link" href="ArvDomNode.html" title="ArvDomNode">ArvDomNode</a>
+         +----ArvDomDocument
+               +----<a class="link" href="ArvGc.html" title="ArvGc">ArvGc</a>
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvDomDocument.description"></a><h2>Description</h2>
+</div>
+<div class="refsect1">
+<a name="ArvDomDocument.details"></a><h2>Details</h2>
+<div class="refsect2">
+<a name="ArvDomDocument-struct"></a><h3>ArvDomDocument</h3>
+<pre class="programlisting">typedef struct _ArvDomDocument ArvDomDocument;</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ArvDomDocumentCreateFunction"></a><h3>ArvDomDocumentCreateFunction ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    (*ArvDomDocumentCreateFunction)     (<em class="parameter"><code><span class="type">void</span></code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-implementation-create-document"></a><h3>arv_dom_implementation_create_document ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    arv_dom_implementation_create_document
+                                                        (<em class="parameter"><code>const <span class="type">char</span> *namespace_uri</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *qualified_name</code></em>);</pre>
+<p>
+Create a new DOM document. Currently, only <em class="parameter"><code>qualified_name</code></em> is used.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>namespace_uri</code></em> :</span></p></td>
+<td>namespace URI</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>qualified_name</code></em> :</span></p></td>
+<td>qualified name</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>, NULL on error:. <span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-implementation-add-document-type"></a><h3>arv_dom_implementation_add_document_type ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_implementation_add_document_type
+                                                        (<em class="parameter"><code>const <span class="type">char</span> *qualified_name</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/gobject/unstable/gobject-Type-Information.html#GType"><span class="type">GType</span></a> document_type</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-implementation-cleanup"></a><h3>arv_dom_implementation_cleanup ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_implementation_cleanup      (<em class="parameter"><code><span class="type">void</span></code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-append-from-memory"></a><h3>arv_dom_document_append_from_memory ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_append_from_memory (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *document</code></em>,
+                                                         <em class="parameter"><code><a class="link" href="ArvDomNode.html" title="ArvDomNode"><span class="type">ArvDomNode</span></a> *node</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+<p>
+Append a chunk of xml tree to an existing document. The resulting nodes will be appended to
+<em class="parameter"><code>node</code></em>, or to <em class="parameter"><code>document</code></em> if <em class="parameter"><code>node</code></em> == NULL.
+</p>
+<p>
+Size set to a negative value indicated an unknow xml data size.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>document</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>node</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomNode.html" title="ArvDomNode"><span class="type">ArvDomNode</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>buffer</code></em> :</span></p></td>
+<td>a memory buffer holding xml data</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>size</code></em> :</span></p></td>
+<td>size of the xml data, in bytes</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>error</code></em> :</span></p></td>
+<td>an error placeholder</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-new-from-memory"></a><h3>arv_dom_document_new_from_memory ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    arv_dom_document_new_from_memory    (<em class="parameter"><code>const <span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-new-from-path"></a><h3>arv_dom_document_new_from_path ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    arv_dom_document_new_from_path      (<em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-new-from-url"></a><h3>arv_dom_document_new_from_url ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="returnvalue">ArvDomDocument</span></a> *    arv_dom_document_new_from_url       (<em class="parameter"><code>const <span class="type">char</span> *url</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-save-to-stream"></a><h3>arv_dom_document_save_to_stream ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_save_to_stream     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *document</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/gio/unstable/GOutputStream.html"><span class="type">GOutputStream</span></a> *stream</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-save-to-memory"></a><h3>arv_dom_document_save_to_memory ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_save_to_memory     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> **buffer</code></em>,
+                                                         <em class="parameter"><code><span class="type">int</span> *size</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-save-to-path"></a><h3>arv_dom_document_save_to_path ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_save_to_path       (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-save-to-url"></a><h3>arv_dom_document_save_to_url ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_save_to_url        (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *documennt</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-get-document-element"></a><h3>arv_dom_document_get_document_element ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="returnvalue">ArvDomElement</span></a> *     arv_dom_document_get_document_element
+                                                        (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>);</pre>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>self</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>the top element of <em class="parameter"><code>self</code></em>. <span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-create-element"></a><h3>arv_dom_document_create_element ()</h3>
+<pre class="programlisting"><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="returnvalue">ArvDomElement</span></a> *     arv_dom_document_create_element     (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *tag_name</code></em>);</pre>
+<p>
+Create a new element.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>self</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>tag_name</code></em> :</span></p></td>
+<td>node name of the element to create</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new orphan <a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a>, NULL on error. <span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-create-text-node"></a><h3>arv_dom_document_create_text_node ()</h3>
+<pre class="programlisting"><span class="returnvalue">ArvDomText</span> *        arv_dom_document_create_text_node   (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *data</code></em>);</pre>
+<p>
+Create a new text element.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>self</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>data</code></em> :</span></p></td>
+<td>initial content</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new orphan <span class="type">ArvDomText</span>, NULL on error. <span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-get-url"></a><h3>arv_dom_document_get_url ()</h3>
+<pre class="programlisting">const <span class="returnvalue">char</span> *        arv_dom_document_get_url            (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-set-url"></a><h3>arv_dom_document_set_url ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_set_url            (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *url</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-set-path"></a><h3>arv_dom_document_set_path ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_document_set_path           (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *path</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-document-get-href-data"></a><h3>arv_dom_document_get_href_data ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span> *              arv_dom_document_get_href_data      (<em class="parameter"><code><a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *href</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gsize"><span class="type">gsize</span></a> *size</code></em>);</pre>
+<p>
+Load the content referenced by <em class="parameter"><code>href</code></em>.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>self</code></em> :</span></p></td>
+<td>a <a class="link" href="ArvDomDocument.html" title="ArvDomDocument"><span class="type">ArvDomDocument</span></a>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>href</code></em> :</span></p></td>
+<td>document reference</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>size</code></em> :</span></p></td>
+<td>data size placeholder</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a newly allocated data buffer. <span class="annotation">[<acronym title="Free data after the code is done."><span class="acronym">transfer full</span></acronym>]</span>
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>

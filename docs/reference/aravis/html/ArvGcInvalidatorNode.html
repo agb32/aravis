@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>ArvGcInvalidatorNode</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="ch04.html" title="Genicam">
+<link rel="prev" href="ArvGcIndexNode.html" title="ArvGcIndexNode">
+<link rel="next" href="ArvGcVariableNode.html" title="ArvGcVariableNode">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+<tr valign="middle">
+<td><a accesskey="p" href="ArvGcIndexNode.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="ch04.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="ArvGcVariableNode.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr>
+<tr><td colspan="5" class="shortcuts">
+<a href="#ArvGcInvalidatorNode.synopsis" class="shortcut">Top</a>
+                   | 
+                  <a href="#ArvGcInvalidatorNode.description" class="shortcut">Description</a>
+                   | 
+                  <a href="#ArvGcInvalidatorNode.object-hierarchy" class="shortcut">Object Hierarchy</a>
+</td></tr>
+</table>
+<div class="refentry">
+<a name="ArvGcInvalidatorNode"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="ArvGcInvalidatorNode.top_of_page"></a>ArvGcInvalidatorNode</span></h2>
+<p>ArvGcInvalidatorNode — Class for Invalidator nodes</p>
+</td>
+<td valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsynopsisdiv">
+<a name="ArvGcInvalidatorNode.synopsis"></a><h2>Synopsis</h2>
+<pre class="synopsis">                    <a class="link" href="ArvGcInvalidatorNode.html#ArvGcInvalidatorNode-struct" title="ArvGcInvalidatorNode">ArvGcInvalidatorNode</a>;
+<a class="link" href="ArvGcNode.html" title="ArvGcNode"><span class="returnvalue">ArvGcNode</span></a> *         <a class="link" href="ArvGcInvalidatorNode.html#arv-gc-invalidator-node-new" title="arv_gc_invalidator_node_new ()">arv_gc_invalidator_node_new</a>         (<em class="parameter"><code><span class="type">void</span></code></em>);
+<a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gint"><span class="returnvalue">gint</span></a>                <a class="link" href="ArvGcInvalidatorNode.html#arv-gc-invalidator-node-get-modification-count" title="arv_gc_invalidator_node_get_modification_count ()">arv_gc_invalidator_node_get_modification_count</a>
+                                                        (<em class="parameter"><code><a class="link" href="ArvGcInvalidatorNode.html" title="ArvGcInvalidatorNode"><span class="type">ArvGcInvalidatorNode</span></a> *invalidator_node</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvGcInvalidatorNode.html#arv-gc-invalidator-node-set-modification-count" title="arv_gc_invalidator_node_set_modification_count ()">arv_gc_invalidator_node_set_modification_count</a>
+                                                        (<em class="parameter"><code><a class="link" href="ArvGcInvalidatorNode.html" title="ArvGcInvalidatorNode"><span class="type">ArvGcInvalidatorNode</span></a> *invalidator_node</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gint"><span class="type">gint</span></a> modification_count</code></em>);
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvGcInvalidatorNode.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="synopsis">
+  <a href="http://library.gnome.org/devel/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+   +----<a class="link" href="ArvDomNode.html" title="ArvDomNode">ArvDomNode</a>
+         +----<a class="link" href="ArvDomElement.html" title="ArvDomElement">ArvDomElement</a>
+               +----<a class="link" href="ArvGcNode.html" title="ArvGcNode">ArvGcNode</a>
+                     +----<a class="link" href="ArvGcPropertyNode.html" title="ArvGcPropertyNode">ArvGcPropertyNode</a>
+                           +----ArvGcInvalidatorNode
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvGcInvalidatorNode.description"></a><h2>Description</h2>
+</div>
+<div class="refsect1">
+<a name="ArvGcInvalidatorNode.details"></a><h2>Details</h2>
+<div class="refsect2">
+<a name="ArvGcInvalidatorNode-struct"></a><h3>ArvGcInvalidatorNode</h3>
+<pre class="programlisting">typedef struct _ArvGcInvalidatorNode ArvGcInvalidatorNode;</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-invalidator-node-new"></a><h3>arv_gc_invalidator_node_new ()</h3>
+<pre class="programlisting"><a class="link" href="ArvGcNode.html" title="ArvGcNode"><span class="returnvalue">ArvGcNode</span></a> *         arv_gc_invalidator_node_new         (<em class="parameter"><code><span class="type">void</span></code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-invalidator-node-get-modification-count"></a><h3>arv_gc_invalidator_node_get_modification_count ()</h3>
+<pre class="programlisting"><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gint"><span class="returnvalue">gint</span></a>                arv_gc_invalidator_node_get_modification_count
+                                                        (<em class="parameter"><code><a class="link" href="ArvGcInvalidatorNode.html" title="ArvGcInvalidatorNode"><span class="type">ArvGcInvalidatorNode</span></a> *invalidator_node</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-invalidator-node-set-modification-count"></a><h3>arv_gc_invalidator_node_set_modification_count ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_gc_invalidator_node_set_modification_count
+                                                        (<em class="parameter"><code><a class="link" href="ArvGcInvalidatorNode.html" title="ArvGcInvalidatorNode"><span class="type">ArvGcInvalidatorNode</span></a> *invalidator_node</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#gint"><span class="type">gint</span></a> modification_count</code></em>);</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>

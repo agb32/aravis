@@ -1,0 +1,267 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>GVCP packets</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="aravis-gv.html" title="Part III. Ethernet protocol (GV)">
+<link rel="prev" href="aravis-gv-introduction.html" title="Introduction">
+<link rel="next" href="aravis-gvsp.html" title="GVSP packets">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2"><tr valign="middle">
+<td><a accesskey="p" href="aravis-gv-introduction.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="aravis-gv.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="aravis-gvsp.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr></table>
+<div class="chapter">
+<div class="titlepage"><div><div><h2 class="title">
+<a name="aravis-gvcp"></a>GVCP packets</h2></div></div></div>
+<p>
+			Devices are waiting for GVCP packets listening to the GVCP port (3946). When the client sends a command GVCP packet to the device, the device sends back an acknowledge packets in return. Each command/acknowledge pair is identified by a 16 bit value, which allows to check if an acknowledge packet corresponds to the previsoulsy sent command. 0 is an error value for this identifier. If an acknowledge is not received after a given timeout period, another command packet is sent, until a maximum number of retries is reached.
+		</p>
+<p>
+			The <a class="link" href="aravis-ArvGvcp.html" title="ArvGvcp">ArvGvcp</a> API offers a set of function for handling of GVCP packets.
+		</p>
+<p>
+			The content of a GVCP packet is composed by a 64 bit headers, followed or not by a data byte array, depending on the GVCP packet type. Multibyte values are in big endian encoding.
+		</p>
+<div class="table">
+<a name="id-1.4.3.5"></a><p class="title"><b>Table 1. GVCP packet</b></p>
+<div class="table-contents"><table summary="GVCP packet" border="1">
+<colgroup>
+<col align="left" class="B0">
+<col align="left" class="B1">
+<col align="left" class="B2">
+<col align="left" class="B3">
+<col align="left" class="B4">
+<col align="left" class="B5">
+<col align="left" class="B6">
+<col align="left" class="B7">
+</colgroup>
+<thead><tr>
+<th align="left">0</th>
+<th align="right">15</th>
+<th align="left">16</th>
+<th align="right">31</th>
+<th align="left">32</th>
+<th align="right">47</th>
+<th align="left">48</th>
+<th align="right">63</th>
+</tr></thead>
+<tbody>
+<tr>
+<td colspan="2" align="left"><a class="link" href="aravis-ArvGvcp.html#ArvGvcpPacketType" title="enum ArvGvcpPacketType"><span class="type">ArvGvcpPacketType</span></a></td>
+<td colspan="2" align="left"><a class="link" href="aravis-ArvGvcp.html#ArvGvcpCommand" title="enum ArvGvcpCommand"><span class="type">ArvGvcpCommand</span></a></td>
+<td colspan="2" align="left">Data size</td>
+<td colspan="2" align="left">Packet id</td>
+</tr>
+<tr><td colspan="8" align="center">Optional data</td></tr>
+<tr><td colspan="8" align="center">...</td></tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break"><div class="sect2">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="id-1.4.3.6"></a>Discovery</h3></div></div></div>
+<p>
+				A device discovery mechanism is implemented using a discovery GVCP packet, broadcasted by the client to the GVCP port. Each available device responds to this discovery packet with an acknowledge packet, containing a description of the device (device name, model name, manufacturer name, MAC Address...).
+			</p>
+<p>
+				In the discovery command packet, data size is set to 0 and packet id is equal to 0xffff.
+			</p>
+<div class="table">
+<a name="id-1.4.3.6.4"></a><p class="title"><b>Table 2. Discovery acknowledge packet</b></p>
+<div class="table-contents"><table summary="Discovery acknowledge packet" border="1">
+<colgroup>
+<col align="left" class="Address">
+<col align="left" class="B0">
+<col align="left" class="B1">
+<col align="left" class="B2">
+<col align="left" class="B3">
+</colgroup>
+<thead><tr>
+<th align="left">Address</th>
+<th align="left">0</th>
+<th align="right">15</th>
+<th align="left">16</th>
+<th align="right">31</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="auto-generated"> </td>
+<td colspan="2" align="left">0x0000</td>
+<td colspan="2" align="left">0x0003</td>
+</tr>
+<tr>
+<td class="auto-generated"> </td>
+<td colspan="2" align="left">0x00f8</td>
+<td colspan="2" align="left">0xffff</td>
+</tr>
+<tr>
+<td align="left">0x0000</td>
+<td colspan="2" align="left">Version major</td>
+<td colspan="2" align="left">Version minor</td>
+</tr>
+<tr>
+<td align="left">0x0004</td>
+<td colspan="2" align="left">Endianness</td>
+<td colspan="2" align="left">Character set</td>
+</tr>
+<tr>
+<td align="left">0x0008</td>
+<td colspan="4" align="left">MAC address high</td>
+</tr>
+<tr>
+<td align="left">0x000c</td>
+<td colspan="4" align="left">MAC address low</td>
+</tr>
+<tr>
+<td align="left">0x0010</td>
+<td colspan="4" align="left">Supported IP configuration</td>
+</tr>
+<tr>
+<td align="left">0x0014</td>
+<td colspan="4" align="left">Current IP configuration</td>
+</tr>
+<tr>
+<td align="left">0x0018</td>
+<td rowspan="3" colspan="4" align="left"> </td>
+</tr>
+<tr><td align="left">0x001c</td></tr>
+<tr><td align="left">0x0020</td></tr>
+<tr>
+<td align="left">0x0024</td>
+<td colspan="4" align="left">
+								Current IP address
+							</td>
+</tr>
+<tr>
+<td align="left">0x0028</td>
+<td rowspan="3" colspan="4" align="left"> </td>
+</tr>
+<tr><td align="left">0x002c</td></tr>
+<tr><td align="left">0x0030</td></tr>
+<tr>
+<td align="left">0x0034</td>
+<td colspan="4" align="left">
+								Current subnet mask
+							</td>
+</tr>
+<tr>
+<td align="left">0x0038</td>
+<td rowspan="3" colspan="4" align="left"> </td>
+</tr>
+<tr><td align="left">0x003c</td></tr>
+<tr><td align="left">0x0040</td></tr>
+<tr>
+<td align="left">0x0044</td>
+<td colspan="4" align="left">
+								Current gateway
+							</td>
+</tr>
+<tr>
+<td align="left">0x0048</td>
+<td rowspan="8" colspan="4" align="left">
+								Manufacturer name
+							</td>
+</tr>
+<tr><td align="left">0x004c</td></tr>
+<tr><td align="left">0x0050</td></tr>
+<tr><td align="left">0x0054</td></tr>
+<tr><td align="left">0x0058</td></tr>
+<tr><td align="left">0x005c</td></tr>
+<tr><td align="left">0x0060</td></tr>
+<tr><td align="left">0x0064</td></tr>
+<tr>
+<td align="left">0x0068</td>
+<td rowspan="8" colspan="4" align="left">
+								Model name
+							</td>
+</tr>
+<tr><td align="left">0x006c</td></tr>
+<tr><td align="left">0x0070</td></tr>
+<tr><td align="left">0x0074</td></tr>
+<tr><td align="left">0x0078</td></tr>
+<tr><td align="left">0x007c</td></tr>
+<tr><td align="left">0x0080</td></tr>
+<tr><td align="left">0x0084</td></tr>
+<tr>
+<td align="left">0x0088</td>
+<td rowspan="8" colspan="4" align="left">
+								Device version
+							</td>
+</tr>
+<tr><td align="left">0x008c</td></tr>
+<tr><td align="left">0x0090</td></tr>
+<tr><td align="left">0x0094</td></tr>
+<tr><td align="left">0x0098</td></tr>
+<tr><td align="left">0x009c</td></tr>
+<tr><td align="left">0x00a0</td></tr>
+<tr><td align="left">0x00a4</td></tr>
+<tr>
+<td align="left">0x00a8</td>
+<td rowspan="12" colspan="4" align="left">
+								Manufacturer informations
+							</td>
+</tr>
+<tr><td align="left">0x00ac</td></tr>
+<tr><td align="left">0x00b0</td></tr>
+<tr><td align="left">0x00b4</td></tr>
+<tr><td align="left">0x00b8</td></tr>
+<tr><td align="left">0x00bc</td></tr>
+<tr><td align="left">0x00c0</td></tr>
+<tr><td align="left">0x00c0</td></tr>
+<tr><td align="left">0x00c4</td></tr>
+<tr><td align="left">0x00cc</td></tr>
+<tr><td align="left">0x00d0</td></tr>
+<tr><td align="left">0x00d4</td></tr>
+<tr>
+<td align="left">0x00d8</td>
+<td rowspan="8" colspan="4" align="left">
+								User defined name
+							</td>
+</tr>
+<tr><td align="left">0x00dc</td></tr>
+<tr><td align="left">0x00e0</td></tr>
+<tr><td align="left">0x00e4</td></tr>
+<tr><td align="left">0x00e8</td></tr>
+<tr><td align="left">0x00ec</td></tr>
+<tr><td align="left">0x00f0</td></tr>
+<tr><td align="left">0x00f4</td></tr>
+</tbody>
+</table></div>
+</div>
+<br class="table-break">
+</div>
+<div class="sect2">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="id-1.4.3.7"></a>Read and write register</h3></div></div></div>
+<p>
+				These packets are used for the read and write of 32 bit registers, accessed using 32 bit adresses. For the read command, a list of addresses is sent ot the client, which returns a list of 32 bit values. For the write command, a list of address/value pairs is sent to the client, which returns a list of 32 bit values.
+			</p>
+<p>
+				Address and data are encoded in the packet as big endian values.
+			</p>
+</div>
+<div class="sect2">
+<div class="titlepage"><div><div><h3 class="title">
+<a name="id-1.4.3.8"></a>Read and write memory</h3></div></div></div>
+<p>
+				Write memory packet data area consists in a 32 bit address, followed by the data to write. Client returns an acknowledge packet with the target address.
+			</p>
+<p>
+				For read memory command, an address/size pair is sent to the device, which returns the content of the given memory area.
+			</p>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>

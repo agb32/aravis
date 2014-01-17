@@ -1,0 +1,93 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>ArvDomElement</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="ch07.html" title="DOM">
+<link rel="prev" href="aravis-ArvDomDocumentFragment.html" title="ArvDomDocumentFragment">
+<link rel="next" href="aravis-ArvDomCharacterData.html" title="ArvDomCharacterData">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+<tr valign="middle">
+<td><a accesskey="p" href="aravis-ArvDomDocumentFragment.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="ch07.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="aravis-ArvDomCharacterData.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr>
+<tr><td colspan="5" class="shortcuts">
+<a href="#ArvDomElement.synopsis" class="shortcut">Top</a>
+                   | 
+                  <a href="#ArvDomElement.description" class="shortcut">Description</a>
+                   | 
+                  <a href="#ArvDomElement.object-hierarchy" class="shortcut">Object Hierarchy</a>
+</td></tr>
+</table>
+<div class="refentry">
+<a name="ArvDomElement"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="ArvDomElement.top_of_page"></a>ArvDomElement</span></h2>
+<p>ArvDomElement — Base class for DOM element nodes</p>
+</td>
+<td valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsynopsisdiv">
+<a name="ArvDomElement.synopsis"></a><h2>Synopsis</h2>
+<pre class="synopsis">                    <a class="link" href="ArvDomElement.html#ArvDomElement-struct" title="ArvDomElement">ArvDomElement</a>;
+const <span class="returnvalue">char</span> *        <a class="link" href="ArvDomElement.html#arv-dom-element-get-tag-name" title="arv_dom_element_get_tag_name ()">arv_dom_element_get_tag_name</a>        (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>);
+const <span class="returnvalue">char</span> *        <a class="link" href="ArvDomElement.html#arv-dom-element-get-attribute" title="arv_dom_element_get_attribute ()">arv_dom_element_get_attribute</a>       (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *name</code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvDomElement.html#arv-dom-element-set-attribute" title="arv_dom_element_set_attribute ()">arv_dom_element_set_attribute</a>       (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *name</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *attribute_value</code></em>);
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvDomElement.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="synopsis">
+  <a href="http://library.gnome.org/devel/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+   +----<a class="link" href="ArvDomNode.html" title="ArvDomNode">ArvDomNode</a>
+         +----ArvDomElement
+               +----<a class="link" href="ArvGcNode.html" title="ArvGcNode">ArvGcNode</a>
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvDomElement.description"></a><h2>Description</h2>
+</div>
+<div class="refsect1">
+<a name="ArvDomElement.details"></a><h2>Details</h2>
+<div class="refsect2">
+<a name="ArvDomElement-struct"></a><h3>ArvDomElement</h3>
+<pre class="programlisting">typedef struct _ArvDomElement ArvDomElement;</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-element-get-tag-name"></a><h3>arv_dom_element_get_tag_name ()</h3>
+<pre class="programlisting">const <span class="returnvalue">char</span> *        arv_dom_element_get_tag_name        (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-element-get-attribute"></a><h3>arv_dom_element_get_attribute ()</h3>
+<pre class="programlisting">const <span class="returnvalue">char</span> *        arv_dom_element_get_attribute       (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *name</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-dom-element-set-attribute"></a><h3>arv_dom_element_set_attribute ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_dom_element_set_attribute       (<em class="parameter"><code><a class="link" href="ArvDomElement.html" title="ArvDomElement"><span class="type">ArvDomElement</span></a> *self</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *name</code></em>,
+                                                         <em class="parameter"><code>const <span class="type">char</span> *attribute_value</code></em>);</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>

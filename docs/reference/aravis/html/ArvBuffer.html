@@ -1,0 +1,647 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>ArvBuffer</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="ch03.html" title="Base">
+<link rel="prev" href="ArvStream.html" title="ArvStream">
+<link rel="next" href="ch04.html" title="Genicam">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+<tr valign="middle">
+<td><a accesskey="p" href="ArvStream.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="ch03.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="ch04.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr>
+<tr><td colspan="5" class="shortcuts">
+<a href="#ArvBuffer.synopsis" class="shortcut">Top</a>
+                   | 
+                  <a href="#ArvBuffer.description" class="shortcut">Description</a>
+                   | 
+                  <a href="#ArvBuffer.object-hierarchy" class="shortcut">Object Hierarchy</a>
+</td></tr>
+</table>
+<div class="refentry">
+<a name="ArvBuffer"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="ArvBuffer.top_of_page"></a>ArvBuffer</span></h2>
+<p>ArvBuffer — Buffer for storage of video frames</p>
+</td>
+<td valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsynopsisdiv">
+<a name="ArvBuffer.synopsis"></a><h2>Synopsis</h2>
+<pre class="synopsis"><span class="returnvalue">void</span>                (<a class="link" href="ArvBuffer.html#ArvFrameCallback" title="ArvFrameCallback ()">*ArvFrameCallback</a>)                 (<em class="parameter"><code><a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> *buffer</code></em>);
+enum                <a class="link" href="ArvBuffer.html#ArvBufferStatus" title="enum ArvBufferStatus">ArvBufferStatus</a>;
+                    <a class="link" href="ArvBuffer.html#ArvBuffer-struct" title="ArvBuffer">ArvBuffer</a>;
+typedef             <a class="link" href="ArvBuffer.html#ArvPixelFormat" title="ArvPixelFormat">ArvPixelFormat</a>;
+<a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         <a class="link" href="ArvBuffer.html#arv-buffer-new" title="arv_buffer_new ()">arv_buffer_new</a>                      (<em class="parameter"><code><span class="type">size_t</span> size</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *preallocated</code></em>);
+<a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         <a class="link" href="ArvBuffer.html#arv-buffer-new-full" title="arv_buffer_new_full ()">arv_buffer_new_full</a>                 (<em class="parameter"><code><span class="type">size_t</span> size</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *preallocated</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *user_data</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Datasets.html#GDestroyNotify"><span class="type">GDestroyNotify</span></a> user_data_destroy_func</code></em>);
+<a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         <a class="link" href="ArvBuffer.html#arv-buffer-new-allocate" title="arv_buffer_new_allocate ()">arv_buffer_new_allocate</a>             (<em class="parameter"><code><span class="type">size_t</span> size</code></em>);
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BIT-PER-PIXEL:CAPS" title="ARV_PIXEL_FORMAT_BIT_PER_PIXEL()">ARV_PIXEL_FORMAT_BIT_PER_PIXEL</a>      (pixel_format)
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-BG-10:CAPS" title="ARV_PIXEL_FORMAT_BAYER_BG_10">ARV_PIXEL_FORMAT_BAYER_BG_10</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-BG-12:CAPS" title="ARV_PIXEL_FORMAT_BAYER_BG_12">ARV_PIXEL_FORMAT_BAYER_BG_12</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GR-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GR_12_PACKED">ARV_PIXEL_FORMAT_BAYER_GR_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GB-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GB_12_PACKED">ARV_PIXEL_FORMAT_BAYER_GB_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-RG-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BAYER_RG_12_PACKED">ARV_PIXEL_FORMAT_BAYER_RG_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-BG-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BAYER_BG_12_PACKED">ARV_PIXEL_FORMAT_BAYER_BG_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-BG-8:CAPS" title="ARV_PIXEL_FORMAT_BAYER_BG_8">ARV_PIXEL_FORMAT_BAYER_BG_8</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GB-10:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GB_10">ARV_PIXEL_FORMAT_BAYER_GB_10</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GB-12:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GB_12">ARV_PIXEL_FORMAT_BAYER_GB_12</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GB-8:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GB_8">ARV_PIXEL_FORMAT_BAYER_GB_8</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GR-10:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GR_10">ARV_PIXEL_FORMAT_BAYER_GR_10</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GR-12:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GR_12">ARV_PIXEL_FORMAT_BAYER_GR_12</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GR-8:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GR_8">ARV_PIXEL_FORMAT_BAYER_GR_8</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-RG-10:CAPS" title="ARV_PIXEL_FORMAT_BAYER_RG_10">ARV_PIXEL_FORMAT_BAYER_RG_10</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-RG-12:CAPS" title="ARV_PIXEL_FORMAT_BAYER_RG_12">ARV_PIXEL_FORMAT_BAYER_RG_12</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-RG-8:CAPS" title="ARV_PIXEL_FORMAT_BAYER_RG_8">ARV_PIXEL_FORMAT_BAYER_RG_8</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-BG-16:CAPS" title="ARV_PIXEL_FORMAT_BAYER_BG_16">ARV_PIXEL_FORMAT_BAYER_BG_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GB-16:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GB_16">ARV_PIXEL_FORMAT_BAYER_GB_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-GR-16:CAPS" title="ARV_PIXEL_FORMAT_BAYER_GR_16">ARV_PIXEL_FORMAT_BAYER_GR_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BAYER-RG-16:CAPS" title="ARV_PIXEL_FORMAT_BAYER_RG_16">ARV_PIXEL_FORMAT_BAYER_RG_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BGRA-8-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BGRA_8_PACKED">ARV_PIXEL_FORMAT_BGRA_8_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BGR-10-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BGR_10_PACKED">ARV_PIXEL_FORMAT_BGR_10_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BGR-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BGR_12_PACKED">ARV_PIXEL_FORMAT_BGR_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-BGR-8-PACKED:CAPS" title="ARV_PIXEL_FORMAT_BGR_8_PACKED">ARV_PIXEL_FORMAT_BGR_8_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-BG-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_12_PACKED">ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-BG-16:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_16">ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-GB-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_12_PACKED">ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-GB-16:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_16">ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-GR-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_12_PACKED">ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-GR-16:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_16">ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-RG-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_12_PACKED">ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-BAYER-RG-16:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_16">ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-CUSTOM-YUV-422-YUYV-PACKED:CAPS" title="ARV_PIXEL_FORMAT_CUSTOM_YUV_422_YUYV_PACKED">ARV_PIXEL_FORMAT_CUSTOM_YUV_422_YUYV_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-10:CAPS" title="ARV_PIXEL_FORMAT_MONO_10">ARV_PIXEL_FORMAT_MONO_10</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-10-PACKED:CAPS" title="ARV_PIXEL_FORMAT_MONO_10_PACKED">ARV_PIXEL_FORMAT_MONO_10_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-12:CAPS" title="ARV_PIXEL_FORMAT_MONO_12">ARV_PIXEL_FORMAT_MONO_12</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_MONO_12_PACKED">ARV_PIXEL_FORMAT_MONO_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-14:CAPS" title="ARV_PIXEL_FORMAT_MONO_14">ARV_PIXEL_FORMAT_MONO_14</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-16:CAPS" title="ARV_PIXEL_FORMAT_MONO_16">ARV_PIXEL_FORMAT_MONO_16</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-8:CAPS" title="ARV_PIXEL_FORMAT_MONO_8">ARV_PIXEL_FORMAT_MONO_8</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-MONO-8-SIGNED:CAPS" title="ARV_PIXEL_FORMAT_MONO_8_SIGNED">ARV_PIXEL_FORMAT_MONO_8_SIGNED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGBA-8-PACKED:CAPS" title="ARV_PIXEL_FORMAT_RGBA_8_PACKED">ARV_PIXEL_FORMAT_RGBA_8_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-10-PACKED:CAPS" title="ARV_PIXEL_FORMAT_RGB_10_PACKED">ARV_PIXEL_FORMAT_RGB_10_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-10-PLANAR:CAPS" title="ARV_PIXEL_FORMAT_RGB_10_PLANAR">ARV_PIXEL_FORMAT_RGB_10_PLANAR</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-12-PACKED:CAPS" title="ARV_PIXEL_FORMAT_RGB_12_PACKED">ARV_PIXEL_FORMAT_RGB_12_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-12-PLANAR:CAPS" title="ARV_PIXEL_FORMAT_RGB_12_PLANAR">ARV_PIXEL_FORMAT_RGB_12_PLANAR</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-16-PLANAR:CAPS" title="ARV_PIXEL_FORMAT_RGB_16_PLANAR">ARV_PIXEL_FORMAT_RGB_16_PLANAR</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-8-PACKED:CAPS" title="ARV_PIXEL_FORMAT_RGB_8_PACKED">ARV_PIXEL_FORMAT_RGB_8_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-RGB-8-PLANAR:CAPS" title="ARV_PIXEL_FORMAT_RGB_8_PLANAR">ARV_PIXEL_FORMAT_RGB_8_PLANAR</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-YUV-411-PACKED:CAPS" title="ARV_PIXEL_FORMAT_YUV_411_PACKED">ARV_PIXEL_FORMAT_YUV_411_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-YUV-422-PACKED:CAPS" title="ARV_PIXEL_FORMAT_YUV_422_PACKED">ARV_PIXEL_FORMAT_YUV_422_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-YUV-422-YUYV-PACKED:CAPS" title="ARV_PIXEL_FORMAT_YUV_422_YUYV_PACKED">ARV_PIXEL_FORMAT_YUV_422_YUYV_PACKED</a>
+#define             <a class="link" href="ArvBuffer.html#ARV-PIXEL-FORMAT-YUV-444-PACKED:CAPS" title="ARV_PIXEL_FORMAT_YUV_444_PACKED">ARV_PIXEL_FORMAT_YUV_444_PACKED</a>
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvBuffer.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="synopsis">
+  <a href="http://library.gnome.org/devel/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>
+   +----ArvBuffer
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvBuffer.description"></a><h2>Description</h2>
+<p>
+<a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> provides a class for the instantiation of buffers used for the
+storage of the separate images of the video stream. The actual data space
+may either be allocated by <a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> during an object instatiation, of
+preallocated. <a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> also allows the transmission of image metadata,
+such as offsets and size of the transmitted region of interrest, pixel
+format and time stamp.
+</p>
+</div>
+<div class="refsect1">
+<a name="ArvBuffer.details"></a><h2>Details</h2>
+<div class="refsect2">
+<a name="ArvFrameCallback"></a><h3>ArvFrameCallback ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                (*ArvFrameCallback)                 (<em class="parameter"><code><a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> *buffer</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ArvBufferStatus"></a><h3>enum ArvBufferStatus</h3>
+<pre class="programlisting">typedef enum {
+	ARV_BUFFER_STATUS_SUCCESS,
+	ARV_BUFFER_STATUS_CLEARED,
+	ARV_BUFFER_STATUS_TIMEOUT,
+	ARV_BUFFER_STATUS_MISSING_PACKETS,
+	ARV_BUFFER_STATUS_WRONG_PACKET_ID,
+	ARV_BUFFER_STATUS_SIZE_MISMATCH,
+	ARV_BUFFER_STATUS_FILLING,
+	ARV_BUFFER_STATUS_ABORTED
+} ArvBufferStatus;
+</pre>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-SUCCESS:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_SUCCESS</code></span></p></td>
+<td>the buffer contains a valid image
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-CLEARED:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_CLEARED</code></span></p></td>
+<td>the buffer is cleared
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-TIMEOUT:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_TIMEOUT</code></span></p></td>
+<td>timeout was reached before all packets are received
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-MISSING-PACKETS:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_MISSING_PACKETS</code></span></p></td>
+<td>stream has missing packets
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-WRONG-PACKET-ID:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_WRONG_PACKET_ID</code></span></p></td>
+<td>stream has packet with wrong id
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-SIZE-MISMATCH:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_SIZE_MISMATCH</code></span></p></td>
+<td>the received image didn't fit in the buffer data space
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-FILLING:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_FILLING</code></span></p></td>
+<td>the image is currently being filled
+</td>
+</tr>
+<tr>
+<td><p><a name="ARV-BUFFER-STATUS-ABORTED:CAPS"></a><span class="term"><code class="literal">ARV_BUFFER_STATUS_ABORTED</code></span></p></td>
+<td>the filling was aborted before completion
+</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ArvBuffer-struct"></a><h3>ArvBuffer</h3>
+<pre class="programlisting">typedef struct _ArvBuffer ArvBuffer;</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ArvPixelFormat"></a><h3>ArvPixelFormat</h3>
+<pre class="programlisting">typedef guint32 ArvPixelFormat;
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-buffer-new"></a><h3>arv_buffer_new ()</h3>
+<pre class="programlisting"><a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         arv_buffer_new                      (<em class="parameter"><code><span class="type">size_t</span> size</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *preallocated</code></em>);</pre>
+<p>
+Creates a new buffer for the storage of the video stream images. 
+The data space can be either preallocated, and the caller is responsible
+for it's deallocation, or allocated by this function. If it is the case,
+data memory will be freed when the buffer is destroyed.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>size</code></em> :</span></p></td>
+<td>payload size</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>preallocated</code></em> :</span></p></td>
+<td>preallocated memory buffer. <span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new <a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> object</td>
+</tr>
+</tbody>
+</table></div>
+<p class="since">Since 0.2.0</p>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-buffer-new-full"></a><h3>arv_buffer_new_full ()</h3>
+<pre class="programlisting"><a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         arv_buffer_new_full                 (<em class="parameter"><code><span class="type">size_t</span> size</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *preallocated</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *user_data</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Datasets.html#GDestroyNotify"><span class="type">GDestroyNotify</span></a> user_data_destroy_func</code></em>);</pre>
+<p>
+Creates a new buffer for the storage of the video stream images. 
+The data space can be either preallocated, and the caller is responsible
+for it's deallocation, or allocated by this function. If it is the case,
+data memory will be freed when the buffer is destroyed.
+</p>
+<p>
+If <em class="parameter"><code>user_data_destroy_func</code></em> is non NULL, it will be called in order to destroy
+user_data when the buffer is destroyed.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>size</code></em> :</span></p></td>
+<td>payload size</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>preallocated</code></em> :</span></p></td>
+<td>preallocated memory buffer. <span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>user_data</code></em> :</span></p></td>
+<td>a pointer to user data associated to this buffer. <span class="annotation">[<acronym title="Don't free data after the code is done."><span class="acronym">transfer none</span></acronym>]</span>
+</td>
+</tr>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>user_data_destroy_func</code></em> :</span></p></td>
+<td>an optional user data destroy callback</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new <a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> object</td>
+</tr>
+</tbody>
+</table></div>
+<p class="since">Since 0.2.0</p>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-buffer-new-allocate"></a><h3>arv_buffer_new_allocate ()</h3>
+<pre class="programlisting"><a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="returnvalue">ArvBuffer</span></a> *         arv_buffer_new_allocate             (<em class="parameter"><code><span class="type">size_t</span> size</code></em>);</pre>
+<p>
+Creates a new buffer for the storage of the video stream images. 
+The data space is allocated by this function, and will
+be freed when the buffer is destroyed.
+</p>
+<div class="variablelist"><table border="0" class="variablelist">
+<colgroup>
+<col align="left" valign="top">
+<col>
+</colgroup>
+<tbody>
+<tr>
+<td><p><span class="term"><em class="parameter"><code>size</code></em> :</span></p></td>
+<td>payload size</td>
+</tr>
+<tr>
+<td><p><span class="term"><span class="emphasis"><em>Returns</em></span> :</span></p></td>
+<td>a new <a class="link" href="ArvBuffer.html" title="ArvBuffer"><span class="type">ArvBuffer</span></a> object</td>
+</tr>
+</tbody>
+</table></div>
+<p class="since">Since 0.2.3</p>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BIT-PER-PIXEL:CAPS"></a><h3>ARV_PIXEL_FORMAT_BIT_PER_PIXEL()</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BIT_PER_PIXEL(pixel_format) (((pixel_format) &gt;&gt; 16) &amp; 0xff)
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-BG-10:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_BG_10</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_BG_10		0x0110000f
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-BG-12:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_BG_12</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_BG_12		0x01100013
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GR-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GR_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GR_12_PACKED 0x010c002a
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GB-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GB_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GB_12_PACKED 0x010c002c
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-RG-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_RG_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_RG_12_PACKED 0x010c002b
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-BG-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_BG_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_BG_12_PACKED 0x010c002d
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-BG-8:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_BG_8</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_BG_8		0x0108000b
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GB-10:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GB_10</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GB_10		0x0110000e
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GB-12:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GB_12</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GB_12		0x01100012
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GB-8:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GB_8</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GB_8		0x0108000a
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GR-10:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GR_10</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GR_10		0x0110000c
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GR-12:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GR_12</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GR_12		0x01100010
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GR-8:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GR_8</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GR_8		0x01080008
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-RG-10:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_RG_10</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_RG_10		0x0110000d
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-RG-12:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_RG_12</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_RG_12		0x01100011
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-RG-8:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_RG_8</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_RG_8		0x01080009
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-BG-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_BG_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_BG_16		0x01100031
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GB-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GB_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GB_16		0x01100030
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-GR-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_GR_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_GR_16		0x0110002e
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BAYER-RG-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_BAYER_RG_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BAYER_RG_16		0x0110002f
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BGRA-8-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BGRA_8_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BGRA_8_PACKED		0x02200017
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BGR-10-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BGR_10_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BGR_10_PACKED		0x02300019
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BGR-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BGR_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BGR_12_PACKED		0x0230001b
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-BGR-8-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_BGR_8_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_BGR_8_PACKED		0x02180015
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-BG-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_12_PACKED  	0x810c0004
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-BG-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_BG_16		0x81100009
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-GB-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_12_PACKED  	0x810c0003
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-GB-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_GB_16		0x81100008
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-GR-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_12_PACKED  	0x810c0001
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-GR-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_GR_16		0x81100006
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-RG-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_12_PACKED  	0x810c0002
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-BAYER-RG-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_BAYER_RG_16		0x81100007
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-CUSTOM-YUV-422-YUYV-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_CUSTOM_YUV_422_YUYV_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_CUSTOM_YUV_422_YUYV_PACKED 	0x82100005
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-10:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_10</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_10		0x01100003
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-10-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_10_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_10_PACKED		0x010c0004
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-12:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_12</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_12		0x01100005
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_12_PACKED		0x010c0006
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-14:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_14</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_14		0x01100025 /* https://bugzilla.gnome.org/show_bug.cgi?id=655131 */
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-16:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_16</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_16		0x01100007
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-8:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_8</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_8			0x01080001
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-MONO-8-SIGNED:CAPS"></a><h3>ARV_PIXEL_FORMAT_MONO_8_SIGNED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_MONO_8_SIGNED		0x01080002
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGBA-8-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGBA_8_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGBA_8_PACKED		0x02200016
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-10-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_10_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_10_PACKED		0x02300018
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-10-PLANAR:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_10_PLANAR</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_10_PLANAR		0x02300022
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-12-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_12_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_12_PACKED		0x0230001a
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-12-PLANAR:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_12_PLANAR</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_12_PLANAR		0x02300023
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-16-PLANAR:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_16_PLANAR</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_16_PLANAR		0x02300024
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-8-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_8_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_8_PACKED		0x02180014
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-RGB-8-PLANAR:CAPS"></a><h3>ARV_PIXEL_FORMAT_RGB_8_PLANAR</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_RGB_8_PLANAR		0x02180021
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-YUV-411-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_YUV_411_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_YUV_411_PACKED		0x020c001e
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-YUV-422-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_YUV_422_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_YUV_422_PACKED		0x0210001f
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-YUV-422-YUYV-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_YUV_422_YUYV_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_YUV_422_YUYV_PACKED 	0x02100032
+</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="ARV-PIXEL-FORMAT-YUV-444-PACKED:CAPS"></a><h3>ARV_PIXEL_FORMAT_YUV_444_PACKED</h3>
+<pre class="programlisting">#define ARV_PIXEL_FORMAT_YUV_444_PACKED		0x02180020
+</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>

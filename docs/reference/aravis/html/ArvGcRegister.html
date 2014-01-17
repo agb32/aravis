@@ -1,0 +1,129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>ArvGcRegister</title>
+<meta name="generator" content="DocBook XSL Stylesheets V1.78.1">
+<link rel="home" href="index.html" title="Aravis Reference Manual">
+<link rel="up" href="ch04.html" title="Genicam">
+<link rel="prev" href="ArvGcGroupNode.html" title="ArvGcGroupNode">
+<link rel="next" href="ArvGcInteger.html" title="ArvGcInteger">
+<meta name="generator" content="GTK-Doc V1.19 (XML mode)">
+<link rel="stylesheet" href="style.css" type="text/css">
+</head>
+<body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF">
+<table class="navigation" id="top" width="100%" summary="Navigation header" cellpadding="2" cellspacing="2">
+<tr valign="middle">
+<td><a accesskey="p" href="ArvGcGroupNode.html"><img src="left.png" width="24" height="24" border="0" alt="Prev"></a></td>
+<td><a accesskey="u" href="ch04.html"><img src="up.png" width="24" height="24" border="0" alt="Up"></a></td>
+<td><a accesskey="h" href="index.html"><img src="home.png" width="24" height="24" border="0" alt="Home"></a></td>
+<th width="100%" align="center">Aravis Reference Manual</th>
+<td><a accesskey="n" href="ArvGcInteger.html"><img src="right.png" width="24" height="24" border="0" alt="Next"></a></td>
+</tr>
+<tr><td colspan="5" class="shortcuts">
+<a href="#ArvGcRegister.synopsis" class="shortcut">Top</a>
+                   | 
+                  <a href="#ArvGcRegister.description" class="shortcut">Description</a>
+                   | 
+                  <a href="#ArvGcRegister.object-hierarchy" class="shortcut">Object Hierarchy</a>
+                   | 
+                  <a href="#ArvGcRegister.prerequisites" class="shortcut">Prerequisites</a>
+                   | 
+                  <a href="#ArvGcRegister.implementations" class="shortcut">Known Implementations</a>
+</td></tr>
+</table>
+<div class="refentry">
+<a name="ArvGcRegister"></a><div class="titlepage"></div>
+<div class="refnamediv"><table width="100%"><tr>
+<td valign="top">
+<h2><span class="refentrytitle"><a name="ArvGcRegister.top_of_page"></a>ArvGcRegister</span></h2>
+<p>ArvGcRegister — Register interface</p>
+</td>
+<td valign="top" align="right"></td>
+</tr></table></div>
+<div class="refsynopsisdiv">
+<a name="ArvGcRegister.synopsis"></a><h2>Synopsis</h2>
+<pre class="synopsis">                    <a class="link" href="ArvGcRegister.html#ArvGcRegister-struct" title="ArvGcRegister">ArvGcRegister</a>;
+<span class="returnvalue">void</span>                <a class="link" href="ArvGcRegister.html#arv-gc-register-get" title="arv_gc_register_get ()">arv_gc_register_get</a>                 (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="type">guint64</span></a> length</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="returnvalue">guint64</span></a>             <a class="link" href="ArvGcRegister.html#arv-gc-register-get-address" title="arv_gc_register_get_address ()">arv_gc_register_get_address</a>         (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="returnvalue">guint64</span></a>             <a class="link" href="ArvGcRegister.html#arv-gc-register-get-length" title="arv_gc_register_get_length ()">arv_gc_register_get_length</a>          (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+<a href="http://library.gnome.org/devel/gobject/unstable/gobject-Type-Information.html#GType"><span class="returnvalue">GType</span></a>               <a class="link" href="ArvGcRegister.html#arv-gc-register-get-type" title="arv_gc_register_get_type ()">arv_gc_register_get_type</a>            (<em class="parameter"><code><span class="type">void</span></code></em>);
+<span class="returnvalue">void</span>                <a class="link" href="ArvGcRegister.html#arv-gc-register-set" title="arv_gc_register_set ()">arv_gc_register_set</a>                 (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="type">guint64</span></a> length</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvGcRegister.object-hierarchy"></a><h2>Object Hierarchy</h2>
+<pre class="synopsis">
+  GInterface
+   +----ArvGcRegister
+</pre>
+</div>
+<div class="refsect1">
+<a name="ArvGcRegister.prerequisites"></a><h2>Prerequisites</h2>
+<p>
+ArvGcRegister requires
+ <a href="http://library.gnome.org/devel/gobject/unstable/gobject-The-Base-Object-Type.html#GObject">GObject</a>.</p>
+</div>
+<div class="refsect1">
+<a name="ArvGcRegister.implementations"></a><h2>Known Implementations</h2>
+<p>
+ArvGcRegister is implemented by
+ <a class="link" href="ArvGcRegisterNode.html" title="ArvGcRegisterNode">ArvGcRegisterNode</a> and  <a class="link" href="ArvGcStructEntryNode.html" title="ArvGcStructEntryNode">ArvGcStructEntryNode</a>.</p>
+</div>
+<div class="refsect1">
+<a name="ArvGcRegister.description"></a><h2>Description</h2>
+</div>
+<div class="refsect1">
+<a name="ArvGcRegister.details"></a><h2>Details</h2>
+<div class="refsect2">
+<a name="ArvGcRegister-struct"></a><h3>ArvGcRegister</h3>
+<pre class="programlisting">typedef struct _ArvGcRegister ArvGcRegister;</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-register-get"></a><h3>arv_gc_register_get ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_gc_register_get                 (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="type">guint64</span></a> length</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-register-get-address"></a><h3>arv_gc_register_get_address ()</h3>
+<pre class="programlisting"><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="returnvalue">guint64</span></a>             arv_gc_register_get_address         (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-register-get-length"></a><h3>arv_gc_register_get_length ()</h3>
+<pre class="programlisting"><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="returnvalue">guint64</span></a>             arv_gc_register_get_length          (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-register-get-type"></a><h3>arv_gc_register_get_type ()</h3>
+<pre class="programlisting"><a href="http://library.gnome.org/devel/gobject/unstable/gobject-Type-Information.html#GType"><span class="returnvalue">GType</span></a>               arv_gc_register_get_type            (<em class="parameter"><code><span class="type">void</span></code></em>);</pre>
+</div>
+<hr>
+<div class="refsect2">
+<a name="arv-gc-register-set"></a><h3>arv_gc_register_set ()</h3>
+<pre class="programlisting"><span class="returnvalue">void</span>                arv_gc_register_set                 (<em class="parameter"><code><a class="link" href="ArvGcRegister.html" title="ArvGcRegister"><span class="type">ArvGcRegister</span></a> *gc_register</code></em>,
+                                                         <em class="parameter"><code><span class="type">void</span> *buffer</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Basic-Types.html#guint64"><span class="type">guint64</span></a> length</code></em>,
+                                                         <em class="parameter"><code><a href="http://library.gnome.org/devel/glib/unstable/glib-Error-Reporting.html#GError"><span class="type">GError</span></a> **error</code></em>);</pre>
+</div>
+</div>
+</div>
+<div class="footer">
+<hr>
+          Generated by GTK-Doc V1.19</div>
+</body>
+</html>
