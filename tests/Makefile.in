@@ -85,8 +85,8 @@ DIST_COMMON = $(top_srcdir)/Makefile.decl $(srcdir)/Makefile.in \
 	$(top_srcdir)/depcomp
 noinst_PROGRAMS = arv-test$(EXEEXT) arv-genicam-test$(EXEEXT) \
 	arv-evaluator-test$(EXEEXT) arv-zip-test$(EXEEXT) \
-	arv-camera-test$(EXEEXT) arv-heartbeat-test$(EXEEXT) \
-	arv-example$(EXEEXT) time-test$(EXEEXT) $(am__EXEEXT_2)
+	arv-camera-test$(EXEEXT) arv-camera-callback-test$(EXEEXT) arv-multi-camera$(EXEEXT) arv-heartbeat-test$(EXEEXT) \
+	arv-example$(EXEEXT) $(am__EXEEXT_2)
 @ARAVIS_BUILD_CPP_TEST_TRUE@am__append_1 = cpp
 subdir = tests
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -106,12 +106,18 @@ am__EXEEXT_2 = evaluator$(EXEEXT) buffer$(EXEEXT) misc$(EXEEXT) \
 	fake$(EXEEXT) genicam$(EXEEXT) $(am__EXEEXT_1)
 PROGRAMS = $(noinst_PROGRAMS)
 am_arv_camera_test_OBJECTS = arvcameratest.$(OBJEXT)
+am_arv_camera_callback_test_OBJECTS = arvcameracallbacktest.$(OBJEXT)
+am_arv_multi_camera_OBJECTS = arvmulticamera.$(OBJEXT)
 arv_camera_test_OBJECTS = $(am_arv_camera_test_OBJECTS)
+arv_camera_callback_test_OBJECTS = $(am_arv_camera_callback_test_OBJECTS)
+arv_multi_camera_OBJECTS = $(am_arv_multi_camera_OBJECTS)
 am__DEPENDENCIES_1 =
 am__DEPENDENCIES_2 =  \
 	$(top_builddir)/src/libaravis-@ARAVIS_API_VERSION@.la \
 	$(am__DEPENDENCIES_1)
 arv_camera_test_DEPENDENCIES = $(am__DEPENDENCIES_2)
+arv_camera_callback_test_DEPENDENCIES = $(am__DEPENDENCIES_2)
+arv_multi_camera_DEPENDENCIES = $(am__DEPENDENCIES_2)
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
@@ -213,13 +219,13 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(arv_camera_test_SOURCES) $(arv_evaluator_test_SOURCES) \
+SOURCES = $(arv_camera_test_SOURCES) $(arv_camera_callback_test_SOURCES) $(arv_multi_camera_SOURCES) $(arv_evaluator_test_SOURCES) \
 	$(arv_example_SOURCES) $(arv_genicam_test_SOURCES) \
 	$(arv_heartbeat_test_SOURCES) $(arv_test_SOURCES) \
 	$(arv_zip_test_SOURCES) $(buffer_SOURCES) $(cpp_SOURCES) \
 	$(evaluator_SOURCES) $(fake_SOURCES) $(genicam_SOURCES) \
-	$(misc_SOURCES) $(time_test_SOURCES)
-DIST_SOURCES = $(arv_camera_test_SOURCES) \
+	$(misc_SOURCES)
+DIST_SOURCES = $(arv_camera_test_SOURCES) $(arv_camera_callback_test_SOURCES) $(arv_multi_camera_SOURCES) \
 	$(arv_evaluator_test_SOURCES) $(arv_example_SOURCES) \
 	$(arv_genicam_test_SOURCES) $(arv_heartbeat_test_SOURCES) \
 	$(arv_test_SOURCES) $(arv_zip_test_SOURCES) $(buffer_SOURCES) \
@@ -449,7 +455,11 @@ arv_evaluator_test_LDADD = $(test_progs_ldadd)
 arv_zip_test_SOURCES = arvziptest.c
 arv_zip_test_LDADD = $(test_progs_ldadd)
 arv_camera_test_SOURCES = arvcameratest.c
+arv_camera_callback_test_SOURCES = arvcameracallbacktest.c
+arv_multi_camera_SOURCES = arvmulticamera.c
 arv_camera_test_LDADD = $(test_progs_ldadd)
+arv_camera_callback_test_LDADD = $(test_progs_ldadd)
+arv_multi_camera_LDADD = $(test_progs_ldadd)
 arv_heartbeat_test_SOURCES = arvheartbeattest.c
 arv_heartbeat_test_LDADD = $(test_progs_ldadd)
 arv_example_SOURCES = arvexample.c
@@ -519,6 +529,14 @@ clean-noinstPROGRAMS:
 arv-camera-test$(EXEEXT): $(arv_camera_test_OBJECTS) $(arv_camera_test_DEPENDENCIES) $(EXTRA_arv_camera_test_DEPENDENCIES) 
 	@rm -f arv-camera-test$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(arv_camera_test_OBJECTS) $(arv_camera_test_LDADD) $(LIBS)
+
+arv-camera-callback-test$(EXEEXT): $(arv_camera_callback_test_OBJECTS) $(arv_camera_callback_test_DEPENDENCIES) $(EXTRA_arv_camera_callback_test_DEPENDENCIES) 
+	@rm -f arv-camera-callback-test$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(arv_camera_callback_test_OBJECTS) $(arv_camera_callback_test_LDADD) $(LIBS)
+
+arv-multi-camera$(EXEEXT): $(arv_multi_camera_OBJECTS) $(arv_multi_camera_DEPENDENCIES) $(EXTRA_arv_multi_camera_DEPENDENCIES) 
+	@rm -f arv-multi-camera$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(arv_multi_camera_OBJECTS) $(arv_multi_camera_LDADD) $(LIBS)
 
 arv-evaluator-test$(EXEEXT): $(arv_evaluator_test_OBJECTS) $(arv_evaluator_test_DEPENDENCIES) $(EXTRA_arv_evaluator_test_DEPENDENCIES) 
 	@rm -f arv-evaluator-test$(EXEEXT)

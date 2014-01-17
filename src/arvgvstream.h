@@ -68,6 +68,9 @@ struct _ArvGvStream {
 
 	GThread *thread;
 	void *thread_data;
+  //agb stuff
+  pthread_t threadid;
+  int threadCreated;
 };
 
 struct _ArvGvStreamClass {

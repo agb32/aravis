@@ -34,6 +34,8 @@
 #include <arvenumtypes.h>
 #include <string.h>
 #include <sys/socket.h>
+#include <pthread.h>
+#include <stdio.h>
 
 #define ARV_GV_STREAM_INCOMING_BUFFER_SIZE	65536
 
@@ -59,6 +61,7 @@ static GObjectClass *parent_class = NULL;
 typedef struct {
 	gboolean received;
 	guint64 time_us;
+  guint32 data_size;//size of this data for this packet.
 } ArvGvStreamPacketData;
 
 typedef struct {
@@ -73,6 +76,12 @@ typedef struct {
 
 	guint n_packets;
 	ArvGvStreamPacketData *packet_data;
+  //some agb stuff.
+  //pthread_mutex_t datablockMutex;
+  //pthread_cond_t datablockCond;
+  //gint32 nWaiting;
+  gint32 contiguous_data_received;
+
 } ArvGvStreamFrameData;
 
 typedef struct {
@@ -201,6 +210,7 @@ _process_data_leader (ArvGvStreamThreadData *thread_data,
 	frame->buffer->pixel_format = arv_gvsp_packet_get_pixel_format (packet);
 	frame->buffer->frame_id = arv_gvsp_packet_get_frame_id (packet);
 
+	frame->buffer->last_data_accessed=0;
 	if (G_LIKELY (thread_data->timestamp_tick_frequency != 0))
 		frame->buffer->timestamp_ns = arv_gvsp_packet_get_timestamp (packet,
 									     thread_data->timestamp_tick_frequency);
@@ -260,6 +270,8 @@ _process_data_block (ArvGvStreamThreadData *thread_data,
 		arv_log_stream_thread ("[GvStream::_process_data_block] Received resent packet %u for frame %u",
 				       packet_id, frame->frame_id);
 	}
+	//frame->buffer->latest_block_end=block_end;
+	frame->packet_data[packet_id].data_size=block_size;
 }
 
 static void
@@ -281,6 +293,8 @@ _process_data_trailer (ArvGvStreamThreadData *thread_data,
 		arv_log_stream_thread ("[GvStream::_process_data_trailer] Received resent packet %u for frame %u",
 				       packet_id, frame->frame_id);
 	}
+	//we've completed the frame now.
+	//frame->buffer->block_end=frame->buffer->block_size;
 }
 
 static ArvGvStreamFrameData *
@@ -337,12 +351,17 @@ _find_frame_data (ArvGvStreamThreadData *thread_data,
 	frame->packet_data = g_new0 (ArvGvStreamPacketData, n_packets);
 	frame->n_packets = n_packets;
 
+	//pthread_mutex_init(&frame->datablockMutex,NULL);
+	//pthread_cond_init(&frame->datablockCond,NULL);
+	//frame->nWaiting=0;
+
 	if (thread_data->callback != NULL &&
-	    frame->buffer != NULL)
+	    frame->buffer != NULL){
+	  frame->buffer->frame_id=frame_id;//added by agb
 		thread_data->callback (thread_data->user_data,
 				       ARV_STREAM_CALLBACK_TYPE_START_BUFFER,
-				       NULL);
-
+				       frame->buffer);//agb was NULL.
+	}
 	thread_data->last_frame_id = frame_id;
 
 	if (frame_id_inc > 1) {
@@ -437,7 +456,7 @@ _close_frame (ArvGvStreamThreadData *thread_data, ArvGvStreamFrameData *frame)
 	    frame->buffer->status != ARV_BUFFER_STATUS_ABORTED)
 		thread_data->n_missing_packets += (int) frame->n_packets - (frame->last_valid_packet + 1);
 
-	if (thread_data->callback != NULL)
+	if (thread_data->callback != NULL)//note - the callback function should test buffer->status == ARV_BUFFER_STATUS_SUCCESS;
 		thread_data->callback (thread_data->user_data,
 				       ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE,
 				       frame->buffer);
@@ -569,6 +588,7 @@ arv_gv_stream_thread (void *data)
 	int timeout_ms;
 	int n_events;
 	int i;
+	int broadcast=0;
 	gboolean first_packet = TRUE;
 
 	thread_data->frames = NULL;
@@ -615,12 +635,9 @@ arv_gv_stream_thread (void *data)
 			frame = _find_frame_data (thread_data, frame_id, packet, packet_id, read_count, time_us);
 
 			if (frame != NULL) {
-				ArvGvspPacketType packet_type = arv_gvsp_packet_get_packet_type (packet);
-
-				if (packet_type != ARV_GVSP_PACKET_TYPE_OK &&
-				    packet_type != ARV_GVSP_PACKET_TYPE_RESEND) {
+				if (arv_gvsp_packet_get_packet_type (packet) != ARV_GVSP_PACKET_TYPE_OK) {
 					arv_debug_stream_thread ("[GvStream::stream_thread]"
-								 " Error packet at dt = %" G_GINT64_FORMAT ", packet id = %u"
+								 " Error packet at dt = %Lu, packet id = %u"
 								 " frame id = %u",
 								 time_us - frame->first_packet_time_us,
 								 packet_id, frame->frame_id);
@@ -638,10 +655,12 @@ arv_gv_stream_thread (void *data)
 					}
 
 					/* Keep track of last packet of a continuous block starting from packet 0 */
+					/*agb moved this after the switch
 					for (i = frame->last_valid_packet + 1; i < frame->n_packets; i++)
 						if (!frame->packet_data[i].received)
 							break;
 					frame->last_valid_packet = i - 1;
+					*/
 
 					switch (arv_gvsp_packet_get_content_type (packet)) {
 						case ARV_GVSP_CONTENT_TYPE_DATA_LEADER:
@@ -659,13 +678,56 @@ arv_gv_stream_thread (void *data)
 							break;
 					}
 
+					/* Keep track of last packet of a continuous block starting from packet 0 */
+					for (i = frame->last_valid_packet + 1; i < frame->n_packets; i++){
+						if (!frame->packet_data[i].received)
+							break;
+						frame->contiguous_data_received+=frame->packet_data[i].data_size;
+					}
+					if(i>frame->last_valid_packet+1){//continuous block has increased in size...
+					  broadcast=1;					  
+					}
+					frame->last_valid_packet = i - 1;
+
 					_missing_packet_check (thread_data, frame, packet_id, time_us);
+					if(broadcast){
+					  broadcast=0;
+					  /*
+					  pthread_mutex_lock(&frame->datablockMutex);
+					  if(frame->nWaiting>0){
+					    pthread_cond_broadcast(&frame->datablockCond);
+					    frame->nWaiting=0;
+					  }
+					  pthread_mutex_unlock(&frame->datablockMutex);
+					  */
+					  frame->buffer->last_valid_packet=frame->last_valid_packet;
+					  frame->buffer->contiguous_data_received=frame->contiguous_data_received;
+					  //printf("Here, packet %d %d\n",frame->last_valid_packet,frame->contiguous_data_received);
+					  if (thread_data->callback != NULL){//need some way of sending last_valid_packet too.  frame->buffer is defined in arvbuffer.h
+					    /*					    
+					    if(frame->buffer->contiguous_data_received==frame->buffer->size){//This is all temporary - should be removed.
+					      //all data received - so do a check here...
+					      int tmp=0;
+					      frame->buffer->last_missing=-1;
+					      for(i=0;i<frame->n_packets;i++){
+						if(frame->packet_data[i].received)
+						  tmp++;
+						else
+						  frame->buffer->last_missing=i;
+					      }
+					      frame->buffer->npackets_received=tmp;
+					    }
+					    */
+					    thread_data->callback (thread_data->user_data,ARV_STREAM_CALLBACK_TYPE_NEW_DATA,frame->buffer);
+
+					  }
+					}
 				}
 			} else
 				thread_data->n_ignored_packets++;
 		} else
 			frame = NULL;
-
+		//if complete, will call the callback.
 		_check_frame_completion (thread_data, time_us, frame);
 	} while (!thread_data->cancel);
 
@@ -780,7 +842,15 @@ arv_gv_stream_new (GInetAddress *device_address, guint16 port,
 
 	gv_stream->thread_data = thread_data;
 
-	gv_stream->thread = arv_g_thread_new ("arv_gv_stream", arv_gv_stream_thread, gv_stream->thread_data);
+	//spawn a new thread.
+	//gv_stream->thread = arv_g_thread_new ("arv_gv_stream", arv_gv_stream_thread, gv_stream->thread_data);
+	//agb added.
+	if(pthread_create(&gv_stream->threadid,NULL,arv_gv_stream_thread,gv_stream->thread_data)!=0){
+	  printf("Error creating thread in arvgvstream\n");
+	  gv_stream->threadCreated=0;
+	}else
+	  gv_stream->threadCreated=1;
+
 
 	return ARV_STREAM (gv_stream);
 }
@@ -893,14 +963,17 @@ arv_gv_stream_finalize (GObject *object)
 {
 	ArvGvStream *gv_stream = ARV_GV_STREAM (object);
 
-	if (gv_stream->thread != NULL) {
+	//if (gv_stream->thread != NULL) {
+	if(gv_stream->threadCreated){
 		ArvGvStreamThreadData *thread_data;
 		char *statistic_string;
 
 		thread_data = gv_stream->thread_data;
 
 		thread_data->cancel = TRUE;
-		g_thread_join (gv_stream->thread);
+		//g_thread_join (gv_stream->thread);
+		pthread_join(gv_stream->threadid,NULL);
+		gv_stream->threadid=0;
 
 		g_object_unref (thread_data->device_address);
 
@@ -945,7 +1018,9 @@ arv_gv_stream_finalize (GObject *object)
 
 		gv_stream->thread_data = NULL;
 		gv_stream->thread = NULL;
+		gv_stream->threadid=0;
 	}
+	gv_stream->threadCreated=0;
 
 	g_object_unref (gv_stream->incoming_address);
 	g_object_unref (gv_stream->socket);

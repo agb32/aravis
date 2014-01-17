@@ -14,3 +14,158 @@ Links
     Bugzilla: https://bugzilla.gnome.org/browse.cgi?product=aravis
     Blog: http://blogs.gnome.org/emmanuel/category/aravis/
     Genicam standard : http://www.genicam.org
+
+
+Also see docs/camAravis.tex
+
+Works best with a dhcp server, so that cameras get assigned an IP address.
+
+Things to install to get working... fedora (I think):
+sudo yum install gstreamer-plugins-base-devel
+sudo yum install libnotify-devel
+sudo yum install gtk2-devel
+sudo yum install gtk3-devel
+sudo yum install gtk+-devel
+sudo yum install gstreamer-devel
+sudo yum install libxml2-devel
+sudo yum install libxml2
+sudo yum install libxml-devel
+sudo yum install glibc-devel glib2-devel
+sudo yum install gstreamer-0.10
+sudo yum install gstreamer
+sudo yum install glib2
+sudo yum install intltool
+
+
+Ubuntu: intltool gstreamer-0.10 libnotify-dev gtk+-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libgtk2.0-dev gstreamer0.10-plugins-bad
+
+Also, maybe:  
+gstreamer-tools
+
+These, actually, not required:
+gobject-introspection
+gtk2.0-dev
+
+./configure --enable-viewer
+make
+sudo make install
+cd src
+make -f Makefile.darc
+cp libcamaravis.so /path/to/darc/lib/ #(eg /rtc/lib/ or /opt/darc/lib/)
+arv-viewer
+
+
+
+Set the networking:
+ifconfig ethX mtu 9000  # X is the ethernet port with camera on it.
+sysctl -w net.core.rmem_max=26214400 
+
+
+
+To change framerate etc...
+
+arv-tool-0.2 control ProgFrameTimeEnable=true
+arv-tool-0.2 control ProgFrameTimeAbs=100000 #to set exp in us.
+
+PixelSize Bpp16
+
+
+Full list of features can be obtained with arv-tool... (--help is friend!)
+
+Doesn't work when viewer is running...
+
+Other things to set are:
+
+TriggerMode=On/Off
+TriggerSource=TimerTrigger/External/Software
+ExposureMode=Off/Timed/TriggerWidth (Not available)/IOExposureControl
+
+AcquisitionMode=Continuous/SingleFrame
+
+
+Various trigger options to test with external triggering.
+
+ExposureTimeRaw
+
+TriggerType=Standard/Fast/Double/Asynchronous/FrameAccumulation
+
+Probably want standard.
+
+
+GainRaw= an integer...
+ExposureTimeRaw=  (not sure if works)
+
+
+
+Access to pixel stream in arvgvstream.c...
+
+arv_gv_stream_thread
+Used in arv_gv_stream_new
+
+Called in arvgvdevice.c function arv_gv_device_create_stream.
+Which is called by arv_gv_device_class_init
+
+But, this isn't called anywhere!
+
+
+
+arvexample.c:
+
+	camera = arv_camera_new (NULL);
+		stream = arv_camera_create_stream (camera, NULL, NULL);
+			g_signal_connect (stream, "new-buffer", G_CALLBACK (new_buffer_cb), &data);
+
+
+arv_camear_create_stream has:
+arv_device_create_stream which is in arvdevice.c
+This calls the create_stream method of ArvDevice objects.
+
+This is probably the arvgvdevice.c device_create_Stream object.
+
+Can we do it without the g_signal_connect?  
+
+The device_create_stream method calls arv_gv_stream_new, which is in
+arvgvstream.c
+
+
+Example in tests/arvcameracallbacktest.c
+
+Multiple cameras...
+I think need to look at GMainContext.
+
+Probably g_main_context_push_thread_default ()
+
+
+Problems on cpuserver after a reboot.  dhcpd wasn't configured
+correctly - now fixed.
+Imperx, inc.-110324   - bobcat2
+
+
+Imperx, inc.-110323   - bobcat3
+
+
+Test with tests/arv-camera-callback-test  [--name="Imprex, inc.-110323"]
+tests/arv-multi-camera --name="Imperx, inc.-110323;Imperx, inc.-110324"
+
+Works with 2 cameras, including setting of parameters... (though needs to close the stream to do this).
+
+
+gcc -c arvmulticamera.c -I../src/ `pkg-config --cflags glib-2.0`
+gcc -o arvmc   -L../src -pthread arvmulticamera.o ../src/arvbuffer.o               ../src/arvgcfloat.o ../src/arvcamera.o               ../src/arvgcgroupnode.o ../src/arvdebug.o                ../src/arvgcindexnode.o ../src/arvdevice.o               ../src/arvgcintegernode.o ../src/arvdomcharacterdata.o     ../src/arvgcinteger.o ../src/arvdomdocumentfragment.o  ../src/arvgcinvalidatornode.o ../src/arvdomdocument.o          ../src/arvgcnode.o ../src/arvdomelement.o           ../src/arvgc.o ../src/arvdomimplementation.o    ../src/arvgcport.o ../src/arvdomnamednodemap.o      ../src/arvgcpropertynode.o ../src/arvdomnodelist.o          ../src/arvgcregisterdescriptionnode.o ../src/arvdomnode.o              ../src/arvgcregisternode.o ../src/arvdomparser.o            ../src/arvgcregister.o ../src/arvdomtext.o              ../src/arvgcstring.o ../src/arvenums.o                ../src/arvgcstructentrynode.o ../src/arvenumtypes.o            ../src/arvgcswissknife.o ../src/arvevaluator.o            ../src/arvgcvariablenode.o           ../src/arvgvcp.o           ../src/arvgvdevice.o         ../src/arvgvinterface.o      ../src/arvgvsp.o            ../src/arvgvstream.o ../src/arvgcboolean.o            ../src/arvinterface.o ../src/arvgccategory.o           ../src/arvmisc.o ../src/arvgccommand.o            ../src/arvstream.o ../src/arvgcconverter.o          ../src/arvstr.o ../src/arvgcenumentry.o          ../src/arvsystem.o ../src/arvgcenumeration.o         ../src/arvgcfeaturenode.o   ../src/arvfakeinterface.o ../src/arvfakedevice.o  ../src/arvfakestream.o ../src/arvfakecamera.o  ../src/arvzip.o ../src/arvgcfloatnode.o  `pkg-config --cflags --libs dbus-1 dbus-glib-1  glib-2.0` -pthread -lgio-2.0 -lgobject-2.0 -lgmodule-2.0 -lxml2 -lgthread-2.0 -lrt -lglib-2.0 -lz -lm 
+
+
+To install the darc module...:
+Install the above dependencies, then:
+./configure --enable-viewer
+make
+cd src
+make -f Makefile.darc
+
+If get the -fPIC warning, have to edit src/Makefile and add -fPIC to the cflags line.  Then do (in src/):
+touch *.c
+make
+make -f Makefile.darc
+make -f Makefile.darc install
+cp ../conf/configBobcat2cam.py /rtc/conf
+
+If you get an error, check that the config file is pointing to the 2 cameras you want to use...

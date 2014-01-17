@@ -82,6 +82,13 @@ struct _ArvBuffer {
 	guint32 height;
 
 	ArvPixelFormat pixel_format;
+  gint32 last_valid_packet;
+
+  //gint32 block_end;//where it has currently written to.
+  guint32 contiguous_data_received;//the amount of contiguous data currently received.
+  guint32 last_data_accessed;//can be set by a callback when accessing data.
+  //guint32 npackets_received;//temprary for testing
+  //gint32 last_missing;//tmp
 };
 
 struct _ArvBufferClass {

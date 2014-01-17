@@ -33,6 +33,7 @@ G_BEGIN_DECLS
  * @ARV_STREAM_CALLBACK_TYPE_EXIT: thread end, happens once
  * @ARV_STREAM_CALLBACK_TYPE_START_BUFFER: buffer filling start, happens at each frame
  * @ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE: buffer filled, happens at each frame
+ * @ARV_STREAM_CALLBACK_TYPE_NEW_DATA: new data has been added to the frame - happens many times per frame.
  *
  * Describes when the stream callback is called.
  */
@@ -41,7 +42,8 @@ typedef enum {
 	ARV_STREAM_CALLBACK_TYPE_INIT,
 	ARV_STREAM_CALLBACK_TYPE_EXIT,
 	ARV_STREAM_CALLBACK_TYPE_START_BUFFER,
-	ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE
+	ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE,
+	ARV_STREAM_CALLBACK_TYPE_NEW_DATA
 } ArvStreamCallbackType;
 
 typedef void (*ArvStreamCallback)	(void *user_data, ArvStreamCallbackType type, ArvBuffer *buffer);

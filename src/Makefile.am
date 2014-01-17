@@ -10,7 +10,7 @@ AM_CPPFLAGS = \
 	-DARAVIS_API_VERSION=\""$(ARAVIS_API_VERSION)"\" \
 	-DG_LOG_DOMAIN=\"Aravis\"
 
-AM_CFLAGS = -Wall
+AM_CFLAGS = -Wall -fPIC
 
 lib_LTLIBRARIES = libaravis-@ARAVIS_API_VERSION@.la
 

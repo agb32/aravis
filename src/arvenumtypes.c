@@ -478,6 +478,9 @@ arv_stream_callback_type_get_type (void)
 			{ ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE,
 			  "ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE",
 			  "buffer-done" },
+			{ ARV_STREAM_CALLBACK_TYPE_NEW_DATA,
+			  "ARV_STREAM_CALLBACK_TYPE_NEW_DATA",
+			  "new-data" },
 			{ 0, NULL, NULL }
 		};
 		the_type = g_enum_register_static (

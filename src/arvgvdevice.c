@@ -25,6 +25,9 @@
  * @short_description: Gigabit ethernet camera device
  */
 
+#include <pthread.h>
+#include <stdio.h>
+#include <errno.h>
 #include <arvgvdevice.h>
 #include <arvgc.h>
 #include <arvgcregisterdescriptionnode.h>
@@ -69,6 +72,8 @@ struct _ArvGvDevicePrivate {
 	ArvGvDeviceIOData *io_data;
 
 	void *heartbeat_thread;
+  pthread_t threadid;//agb
+  int threadCreated;
 	void *heartbeat_data;
 
 	ArvGc *genicam;
@@ -908,8 +913,15 @@ arv_gv_device_new (GInetAddress *interface_address, GInetAddress *device_address
 
 	gv_device->priv->heartbeat_data = heartbeat_data;
 
-	gv_device->priv->heartbeat_thread = arv_g_thread_new ("arv_gv_heartbeat", arv_gv_device_heartbeat_thread,
-							      gv_device->priv->heartbeat_data);
+	//gv_device->priv->heartbeat_thread = arv_g_thread_new ("arv_gv_heartbeat", arv_gv_device_heartbeat_thread,gv_device->priv->heartbeat_data);
+	gv_device->priv->threadid=0;
+	if(pthread_create(&gv_device->priv->threadid,NULL,arv_gv_device_heartbeat_thread,gv_device->priv->heartbeat_data)!=0){
+	  printf("Error creating thread in arvgvdevice.c : %s\n",strerror(errno));
+	  gv_device->priv->threadCreated=0;
+	}else{
+	  gv_device->priv->threadCreated=1;
+	  printf("pthread_create succeeded in arvgvdevice.c\n");
+	}
 
 	arv_device_read_register (ARV_DEVICE (gv_device), ARV_GVBS_GVCP_CAPABILITY_OFFSET, &capabilities, NULL);
 	gv_device->priv->is_packet_resend_supported = (capabilities & ARV_GVBS_GVCP_CAPABILITY_PACKET_RESEND) != 0;
@@ -942,18 +954,22 @@ arv_gv_device_finalize (GObject *object)
 	ArvGvDevice *gv_device = ARV_GV_DEVICE (object);
 	ArvGvDeviceIOData *io_data;
 
-	if (gv_device->priv->heartbeat_thread != NULL) {
+	//if (gv_device->priv->heartbeat_thread != NULL) {
+	if(gv_device->priv->threadCreated){
 		ArvGvDeviceHeartbeatData *heartbeat_data;
 
 		heartbeat_data = gv_device->priv->heartbeat_data;
 
 		heartbeat_data->cancel = TRUE;
-		g_thread_join (gv_device->priv->heartbeat_thread);
+		//g_thread_join (gv_device->priv->heartbeat_thread);
+		pthread_join(gv_device->priv->threadid,NULL);
+		gv_device->priv->threadCreated=0;
 		g_free (heartbeat_data);
 
 		gv_device->priv->heartbeat_data = NULL;
 		gv_device->priv->heartbeat_thread = NULL;
 	}
+	gv_device->priv->threadCreated=0;
 
 	arv_gv_device_leave_control (gv_device);
 
