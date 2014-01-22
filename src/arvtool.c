@@ -63,7 +63,6 @@ arv_tool_execute_command (int argc, char **argv, const char *device_name)
 	ArvDevice *device;
 	ArvGc *genicam;
 	const char *command = argv[1];
-
 	device = arv_open_device (device_name);
 	if (!ARV_IS_DEVICE (device)) {
 		if (device_name != NULL)
@@ -200,7 +199,6 @@ arv_tool_execute_command (int argc, char **argv, const char *device_name)
 	} else {
 		printf ("Unkown command\n");
 	}
-
 	g_object_unref (device);
 }
 
@@ -288,9 +286,7 @@ main (int argc, char **argv)
 
 	if (count == 0)
 		printf ("No device found\n");
-
 	g_pattern_spec_free (pattern);
-
 	arv_shutdown ();
 
 	return EXIT_SUCCESS;

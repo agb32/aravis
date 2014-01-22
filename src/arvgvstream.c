@@ -43,7 +43,7 @@
 #define ARV_GV_STREAM_PACKET_TIMEOUT_US_DEFAULT		40000
 #define ARV_GV_STREAM_FRAME_RETENTION_US_DEFAULT	200000
 
-#define ARV_GV_STREAM_DISCARD_LATE_FRAME_THRESHOLD	100
+#define ARV_GV_STREAM_DISCARD_LATE_FRAME_THRESHOLD	1//changed to 1 from 100 by agb.
 
 enum {
 	ARV_GV_STREAM_PROPERTY_0,
@@ -183,6 +183,7 @@ _update_socket (ArvGvStreamThreadData *thread_data, ArvBuffer *buffer)
 	}
 
 	if (buffer_size != thread_data->current_socket_buffer_size) {
+	  printf("arvgvstream.c - setting socket recv size to %d\n",(int)buffer_size);
 		setsockopt (fd, SOL_SOCKET, SO_RCVBUF, &buffer_size, sizeof (buffer_size));
 		thread_data->current_socket_buffer_size = buffer_size;
 		arv_debug_stream_thread ("[GvStream::update_socket] Socket buffer size set to %d", buffer_size);
@@ -321,6 +322,7 @@ _find_frame_data (ArvGvStreamThreadData *thread_data,
 
 	frame_id_inc = (gint16) frame_id - (gint16) thread_data->last_frame_id;
 	if (frame_id_inc < 1  && frame_id_inc > -ARV_GV_STREAM_DISCARD_LATE_FRAME_THRESHOLD) {
+	  printf("Discard late frame %u (last %u)\n",frame_id,thread_data->last_frame_id);
 		arv_debug_stream_thread ("[GvStream::_find_frame_data] Discard late frame %u (last: %u)",
 					 frame_id, thread_data->last_frame_id);
 		return NULL;
@@ -329,10 +331,10 @@ _find_frame_data (ArvGvStreamThreadData *thread_data,
 	buffer = arv_stream_pop_input_buffer (thread_data->stream);
 	if (buffer == NULL) {
 		thread_data->n_underruns++;
-
+		printf("arvgvstream.c: No buffer available - underrun\n");
 		return NULL;
 	}
-
+	//create a new frame object, to store packet info for this frame.
 	frame = g_new0 (ArvGvStreamFrameData, 1);
 
 	frame->error_packet_received = FALSE;
@@ -365,6 +367,7 @@ _find_frame_data (ArvGvStreamThreadData *thread_data,
 	thread_data->last_frame_id = frame_id;
 
 	if (frame_id_inc > 1) {
+	  printf("arvgvstream.c: _find_frame_data - missed %d frames before %u\n",frame_id_inc-1,frame_id);
 		thread_data->n_missing_frames++;
 		arv_log_stream_thread ("[GvStream::_find_frame_data] Missed %d frame(s) before %u",
 				       frame_id_inc - 1, frame_id);

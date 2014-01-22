@@ -372,6 +372,7 @@ _write_register (ArvGvDeviceIOData *io_data, guint32 address, guint32 value, GEr
 				packet_id = arv_gvcp_packet_get_packet_id (ack_packet);
 
 				arv_log_gvcp ("%d, %d, %d", packet_type, command, packet_id);
+				//printf ("_write_register: %d, %d, %d  %d %x %u\n", packet_type, command, packet_id,io_data->packet_id,address,value);
 
 				if (packet_type == ARV_GVCP_PACKET_TYPE_ACK &&
 				    command == ARV_GVCP_COMMAND_WRITE_REGISTER_ACK &&
@@ -476,6 +477,11 @@ arv_gv_device_take_control (ArvGvDevice *gv_device)
 					     ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_OFFSET,
 					     ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_CONTROL, NULL);
 
+	//agb for EVT.
+	//printf("arv_gv_device_take_control sending 0xbb8 to address 0x954 for EVT\n");
+	//arv_device_write_register (ARV_DEVICE (gv_device),0x954,0/*0xbb8*/, NULL);
+
+
 	gv_device->priv->io_data->is_controller = success;
 
 	if (!success)
@@ -490,6 +496,10 @@ arv_gv_device_leave_control (ArvGvDevice *gv_device)
 	gboolean success;
 
 	gv_device->priv->io_data->is_controller = FALSE;
+
+	//agb for EVT.
+	//printf("arv_gv_device_take_control sending 0x0 to address 0x954 for EVT\n");
+	//arv_device_write_register (ARV_DEVICE (gv_device),0x954,0x0, NULL);
 
 	success = arv_device_write_register (ARV_DEVICE (gv_device),
 					    ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_OFFSET, 0, NULL);
@@ -743,15 +753,16 @@ arv_gv_device_create_stream (ArvDevice *device, ArvStreamCallback callback, void
 	guint32 n_stream_channels;
 	GInetAddress *interface_address;
 	GInetAddress *device_address;
-
+	printf("device_create_stream\n");
 	arv_device_read_register (device, ARV_GVBS_N_STREAM_CHANNELS_OFFSET, &n_stream_channels, NULL);
 	arv_debug_device ("[GvDevice::create_stream] Number of stream channels = %d", n_stream_channels);
-
+	printf("arvgvdevice.c: Number of stream channels=%d\n",n_stream_channels);
 	if (n_stream_channels < 1)
 		return NULL;
 
 	if (!io_data->is_controller) {
 		arv_warning_device ("[GvDevice::create_stream] Can't create stream without control access");
+		printf("arvgvdevice.c: Can't create stream without control access\n");
 		return NULL;
 	}
 
@@ -770,17 +781,31 @@ arv_gv_device_create_stream (ArvDevice *device, ArvStreamCallback callback, void
 
 	packet_size = arv_gv_device_get_packet_size (gv_device);
 	arv_debug_device ("[GvDevice::create_stream] Packet size = %d byte(s)", packet_size);
-
+	printf("Packet size = %d bytes\n",packet_size);
 	stream = arv_gv_stream_new (device_address, 0, callback, user_data,
 				    arv_gv_device_get_timestamp_tick_frequency (gv_device), packet_size);
 
 	stream_port = arv_gv_stream_get_port (ARV_GV_STREAM (stream));
+	gboolean b1,b2,b0,b3,b4;
+	//added for EVT
+	printf("Writing registers 0xd04, d08 for EVT\n");
+	b0=arv_device_write_register (device, 0xd04, 0x40000000|packet_size, NULL);
 
-	if (!arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,
-					g_htonl(*((guint32 *) address_bytes)), NULL) ||
-	    !arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_PORT_OFFSET, stream_port, NULL)) {
+	b2=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_PORT_OFFSET, stream_port, NULL);
+	
+	//added for EVT
+	b3=arv_device_write_register (device, 0xd04, packet_size, NULL);
+	//added for EVT
+	b4=arv_device_write_register (device, 0xd08, 0, NULL);
+
+	b1=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,
+				      g_htonl(*((guint32 *) address_bytes)), NULL);
+	printf("Stream_port: %u %d %d\n",stream_port,b1,b2);
+	printf("Other rturns (ignored):  %d %d %d\n",b0,b3,b4);
+	if (!b1||
+	    !b2) {
 		arv_warning_device ("[GvDevice::create_stream] Stream configuration failed");
-
+		printf("arvgvdevice.c:  Stream configuration failed\n");
 		g_object_unref (stream);
 		return NULL;
 	}
@@ -789,7 +814,6 @@ arv_gv_device_create_stream (ArvDevice *device, ArvStreamCallback callback, void
 		g_object_set (stream, "packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER, NULL); 
 
 	arv_debug_device ("[GvDevice::create_stream] Stream port = %d", stream_port);
-
 	return stream;
 }
 
@@ -920,7 +944,7 @@ arv_gv_device_new (GInetAddress *interface_address, GInetAddress *device_address
 	  gv_device->priv->threadCreated=0;
 	}else{
 	  gv_device->priv->threadCreated=1;
-	  printf("pthread_create succeeded in arvgvdevice.c\n");
+	  printf("pthread_create succeeded for heartbeat thread in arvgvdevice.c\n");
 	}
 
 	arv_device_read_register (ARV_DEVICE (gv_device), ARV_GVBS_GVCP_CAPABILITY_OFFSET, &capabilities, NULL);

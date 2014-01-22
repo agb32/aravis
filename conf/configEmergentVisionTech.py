@@ -79,7 +79,7 @@ for k in range(ncam):
         #n=(subapLocation[indx,1]-1)*npxlx[k]+subapLocation[indx,4]
         n=subapLocation[indx,1]*npxlx[k]#whole rows together...
         pxlCnt[indx]=n
-
+pxlCnt[-12]=npxlx[0]*npxly[0]
 #pxlCnt[-5]=128*256
 #pxlCnt[-6]=128*256
 #pxlCnt[nsubaps/2-5]=128*256
@@ -106,8 +106,8 @@ while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
 cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
-cameraParams[0:ncam]=8#8 bpp - cam0, cam1
-cameraParams[ncam:2*ncam]=5184#block size
+cameraParams[0:ncam]=8#8 bpp
+cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
 cameraParams[2*ncam:3*ncam]=0#x offset
 cameraParams[3*ncam:4*ncam]=0#y offset
 cameraParams[4*ncam:5*ncam]=50#priority
@@ -119,8 +119,8 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="FrameRate=100;"
-
+#camCommand="FrameRate=10;"
+camCommand=None
 
 control={
     "switchRequested":0,#this is the only item in a currently active buffer that can be changed...
@@ -159,7 +159,7 @@ control={
     "gain":numpy.ones((nacts,),"f"),
     "E":numpy.zeros((nacts,nacts),"f"),#E from the tomoalgo in openloop.
     "threadAffinity":None,
-    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*10,
+    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*50,
     "delay":0,
     "clearErrors":0,
     "camerasOpen":1,
@@ -210,6 +210,7 @@ control={
     "version":" "*120,
     #"lastActs":numpy.zeros((nacts,),numpy.uint16),
     }
-for i in range(ncam):
-    control["aravisCmd%d"%i]=camCommand
+if camCommand!=None:
+    for i in range(ncam):
+        control["aravisCmd%d"%i]=camCommand
 #control["pxlCnt"][-3:]=npxls#not necessary, but means the RTC reads in all of the pixels... so that the display shows whole image

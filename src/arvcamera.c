@@ -115,7 +115,6 @@ ArvStream *
 arv_camera_create_stream (ArvCamera *camera, ArvStreamCallback callback, gpointer user_data)
 {
 	g_return_val_if_fail (ARV_IS_CAMERA (camera), NULL);
-
 	return arv_device_create_stream (camera->priv->device, callback, user_data);
 }
 

@@ -225,17 +225,22 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	  camstr->readStarted[cam]=0;
 	  if(camstr->mostRecentFilled[cam]!=NULL){
 	    printf("Skipping [%u %s]: darc not keeping up/diff Hz/lost data\n",camstr->mostRecentFilled[cam]->frame_id,camstr->camNameList[cam]);
+	  }else{
+	    //printf("ok - not skipping\n");
 	  }
 	  if(camstr->currentFilling[cam]!=NULL){//not currently being read
 	    camstr->mostRecentFilled[cam]=buffer;
 	    camstr->currentFilling[cam]=NULL;
+	    //printf("setting mostRecentFilled to frame %u\n",buffer->frame_id);
 	  }else{
 	    camstr->mostRecentFilled[cam]=NULL;//should be anyway!
+	    //printf("setting mostRecentFilled to NULL\n");
 	  }
 	}
 	//wake up the main threads...
 	if(camstr->waiting[cam]){
 	  camstr->waiting[cam]=0;
+	  //printf("Broadcasting - newdata\n");
 	  pthread_cond_broadcast(&camstr->camCond[cam]);
 	}
 	pthread_mutex_unlock(&camstr->camMutex[cam]);
@@ -259,11 +264,13 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	if(camstr->currentFilling[cam]==NULL){
 	  camstr->camErr[cam]=1;//previous frame didn't get finished.
 	  camstr->mostRecentFilled[cam]=NULL;//just incase - probably null anyway.
+	  printf("Error case - setting mostRecentFilled to NULL\n");
 	}
       }
       camstr->currentFilling[cam]=buffer;
       if(camstr->waiting[cam]){//is anyoen waiting?  Tell them about the new buffer.
 	camstr->waiting[cam]=0;
+	//printf("Broadcasting sof\n");
 	pthread_cond_broadcast(&camstr->camCond[cam]);
       }
       pthread_mutex_unlock(&camstr->camMutex[cam]);
@@ -272,18 +279,21 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   }else if(type==ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE){
     stream=camstr->stream[cam];
     //Really, should check status of buffer->status, but I think there may be a bug.  So, here, instead check whether buffer->contiguous_data_received==buffer->size
+    //printf("Frame status: %d;  Success: %d\n",buffer->status,buffer->status==ARV_BUFFER_STATUS_SUCCESS);
     if(buffer->contiguous_data_received!=buffer->size){
       printf("Not all frame received\n");
       //Notify the main threads, after setting an error.
       //Note - this is only an error if something has started accessing the data in the first place - in which case currentFilling will be NULL.
       pthread_mutex_lock(&camstr->camMutex[cam]);
       if(camstr->currentFilling[cam]==NULL){
+	//printf("Not all frame received - setting mostRecentFilled to NULL\n");
 	camstr->mostRecentFilled[cam]=NULL;//just in case.
 	camstr->camErr[cam]=1;//previous frame didn't get finished.
 	if(camstr->waiting[cam]){
 	  camstr->waiting[cam]=0;
 	  //todo("set an error");
 	  camstr->readStarted[cam]=0;
+	  //printf("Broadcasting (error)\n");
 	  pthread_cond_broadcast(&camstr->camCond[cam]);
 	}
       }else//nothing has started on this one yet, so simply set to null.
@@ -630,6 +640,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       camstr->threadAffinity[i*camstr->threadAffinElSize+j]=0xffffffff;
   }
   //And then we set up the rest, start the streams etc.
+  camstr->no_packet_resend=1;
   camstr->packet_timeout=20;//in ms.  Might be too low for slow cameras?  Fix if needed.
   camstr->frame_retention=100;//in ms.
   if(n>=2*ncam){
@@ -1068,6 +1079,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
   //todo("care with mutexes...");
   //printf("camWaitPixels got mutex, newframe=%d\n",camstr->newframe[cam]);
   if(camstr->newframe[cam]){//first thread for this camera after new frame...
+    //printf("First thread for new frame\n");
     camstr->newframe[cam]=0;
     camstr->frameReady[cam]=0;
     camstr->pxlsTransferred[cam]=0;
@@ -1075,6 +1087,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
     while(gotNewFrame==0){
       if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
 	//have a full buffer waiting for processing.
+	//printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
 	camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
 	camstr->mostRecentFilled[cam]=NULL;
 	gotNewFrame=1;
@@ -1082,12 +1095,15 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	//have a new buffer currently reading out
 	camstr->rtcReading[cam]=camstr->currentFilling[cam];
 	camstr->currentFilling[cam]=NULL;
+	camstr->mostRecentFilled[cam]=NULL;
+	//printf("setting rtcReading to currentFilling and moreRecentFilled to NULL\n");
 	gotNewFrame=1;
       }else{
 	//wait for the next frame to start.
 	//What should we do about errors here?
 	//We don't care about errors here.  Since we're waiting for a new frame, it means that we've completed previous frames.  So, we can simple reset camErr to zero.
 	camstr->waiting[cam]=1;
+	//printf("waiting for sof\n");
 	pthread_cond_wait(&camstr->camCond[cam],&camstr->camMutex[cam]);
       }
       camstr->camErr[cam]=0;//we're waiting for new frame - so don't care about errors.  And if a frame has an error, it won't appear on currentFilling, or mostRecentFilled, so we're ok to ignore.
@@ -1095,21 +1111,24 @@ int camWaitPixels(int n,int cam,void *camHandle){
     //wake the other threads for this camera that are waiting.
     camstr->userFrameNo[cam]=camstr->rtcReading[cam]->frame_id;
     camstr->frameReady[cam]=1;
+    //printf("Broadcasting frameReady\n");
     pthread_cond_broadcast(&camstr->camCond2[cam]);
   }else{
     //We're not the first thread for this frame/camera.
     //Need to wait here until the frame is ready.
     while(camstr->frameReady[cam]==0){
       //todo("care with mutex");
+      //printf("Waiting from frameReady\n");
       pthread_cond_wait(&camstr->camCond2[cam],&camstr->camMutex[cam]);
     }
   }
   while(camstr->rtcReading[cam]->contiguous_data_received<n*((camstr->bpp[cam]+7)/8) && (rt=camstr->camErr[cam])==0){
+    //printf("waiting for data\n");
     camstr->waiting[cam]=1;
     pthread_cond_wait(&camstr->camCond[cam],&camstr->camMutex[cam]);
     //rt=camstr->camErr[cam];
   }
-  camstr->camErr[cam]=0;//reset for next time.
+  //camstr->camErr[cam]=0;//reset for next time.  BAD IDEA!
   //Now copy the data.
   if(rt==0 && n>camstr->pxlsTransferred[cam]){
     if(camstr->bytespp==1){//all cameras are <=8 bits per pixel.
@@ -1128,8 +1147,9 @@ int camWaitPixels(int n,int cam,void *camHandle){
     }
     camstr->pxlsTransferred[cam]=n;
   }
-  if(rt!=0){
+  if(rt!=0){//An error has arisen - probably dropped packet.  So how do we handle this?
     printf("camWaitPixels got err %d (cam %d) frame[0]=%d frame[%d]=%d\n",rt,cam,camstr->userFrameNo[0],cam,camstr->userFrameNo[cam]);
+    
   }
   pthread_mutex_unlock(&camstr->camMutex[cam]);
   return rt;
