@@ -25,7 +25,7 @@ import numpy
 nacts=54#97#54#+256
 ncam=1
 print "Using %d cameras"%ncam
-ncamThreads=numpy.ones((ncam,),numpy.int32)*1
+ncamThreads=numpy.ones((ncam,),numpy.int32)*2
 npxly=numpy.zeros((ncam,),numpy.int32)
 npxly[:]=1088
 npxlx=npxly.copy()
@@ -159,7 +159,7 @@ control={
     "gain":numpy.ones((nacts,),"f"),
     "E":numpy.zeros((nacts,nacts),"f"),#E from the tomoalgo in openloop.
     "threadAffinity":None,
-    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*50,
+    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*49,
     "delay":0,
     "clearErrors":0,
     "camerasOpen":1,

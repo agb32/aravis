@@ -786,22 +786,20 @@ arv_gv_device_create_stream (ArvDevice *device, ArvStreamCallback callback, void
 				    arv_gv_device_get_timestamp_tick_frequency (gv_device), packet_size);
 
 	stream_port = arv_gv_stream_get_port (ARV_GV_STREAM (stream));
-	gboolean b1,b2,b0,b3,b4;
-	//added for EVT
-	printf("Writing registers 0xd04, d08 for EVT\n");
-	b0=arv_device_write_register (device, 0xd04, 0x40000000|packet_size, NULL);
+	gboolean b1,b2;
+	//gboolean b0,b3,b4;
+	//printf("Writing registers 0xd04, d08 for EVT\n");
+	//b0=arv_device_write_register (device, 0xd04, 0x40000000|packet_size, NULL);	//added for EVT
 
 	b2=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_PORT_OFFSET, stream_port, NULL);
 	
-	//added for EVT
-	b3=arv_device_write_register (device, 0xd04, packet_size, NULL);
-	//added for EVT
-	b4=arv_device_write_register (device, 0xd08, 0, NULL);
+	//b3=arv_device_write_register (device, 0xd04, packet_size, NULL);//added for EVT
+	//b4=arv_device_write_register (device, 0xd08, 0, NULL);//added for EVT
 
 	b1=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,
 				      g_htonl(*((guint32 *) address_bytes)), NULL);
-	printf("Stream_port: %u %d %d\n",stream_port,b1,b2);
-	printf("Other rturns (ignored):  %d %d %d\n",b0,b3,b4);
+	//printf("Stream_port: %u %d %d\n",stream_port,b1,b2);
+	//printf("Other rturns (ignored):  %d %d %d\n",b0,b3,b4);
 	if (!b1||
 	    !b2) {
 		arv_warning_device ("[GvDevice::create_stream] Stream configuration failed");
