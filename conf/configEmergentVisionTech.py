@@ -25,7 +25,7 @@ import numpy
 nacts=54#97#54#+256
 ncam=1
 print "Using %d cameras"%ncam
-ncamThreads=numpy.ones((ncam,),numpy.int32)*2
+ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
 npxly[:]=1088
 npxlx=npxly.copy()

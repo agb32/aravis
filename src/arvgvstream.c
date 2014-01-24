@@ -502,6 +502,15 @@ _check_frame_completion (ArvGvStreamThreadData *thread_data,
 			frame->buffer->status = ARV_BUFFER_STATUS_MISSING_PACKETS;
 			arv_debug_stream_thread ("[GvStream::_check_frame_completion] Incomplete frame %u",
 						 frame->frame_id);
+			int i;
+			int nrec=0;
+			int first=-1;
+			for(i=0;i<frame->n_packets;i++){
+			  nrec+=frame->packet_data[i].received;
+			  if(first==-1 && !frame->packet_data[i].received)
+			    first=i;
+			}
+			printf("Received %d/%d, first dropped %d\n",nrec,frame->n_packets,first);
 			_close_frame (thread_data, frame);
 			thread_data->frames = iter->next;
 			g_slist_free_1 (iter);
