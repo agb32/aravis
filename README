@@ -83,6 +83,12 @@ IRQ binding:
 http://fasterdata.es.net/host-tuning/interrupt-binding/
 
 
+Also - in camAravis - I now set the socket buffer to 16*npxls - so
+that it has a large enough buffer to store them all.  In reality, for
+large cameras it may get set to less than this if rmem_max is
+smaller.  Also - might want to do something cleverer at some point to
+reduce memory...
+
 
 To change framerate etc... (bobcats)
 

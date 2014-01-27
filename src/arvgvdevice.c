@@ -477,10 +477,11 @@ arv_gv_device_take_control (ArvGvDevice *gv_device)
 					     ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_OFFSET,
 					     ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_CONTROL, NULL);
 
+#ifdef EVTSPECIAL
 	//agb for EVT.
-	printf("arv_gv_device_take_control sending 0xbb8 to address 0x954 for EVT\n");
+	printf("arv_gv_device_take_control sending 0x0 to address 0x954 for EVT\n");
 	arv_device_write_register (ARV_DEVICE (gv_device),0x954,0/*0xbb8*/, NULL);
-
+#endif
 
 	gv_device->priv->io_data->is_controller = success;
 
@@ -497,9 +498,11 @@ arv_gv_device_leave_control (ArvGvDevice *gv_device)
 
 	gv_device->priv->io_data->is_controller = FALSE;
 
+#ifdef EVTSPECIAL
 	//agb for EVT.
 	printf("arv_gv_device_take_control sending 0x0 to address 0x954 for EVT\n");
 	arv_device_write_register (ARV_DEVICE (gv_device),0x954,0x0, NULL);
+#endif
 
 	success = arv_device_write_register (ARV_DEVICE (gv_device),
 					    ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_OFFSET, 0, NULL);
@@ -787,19 +790,23 @@ arv_gv_device_create_stream (ArvDevice *device, ArvStreamCallback callback, void
 
 	stream_port = arv_gv_stream_get_port (ARV_GV_STREAM (stream));
 	gboolean b1,b2;
+#ifdef EVTSPECIAL
 	gboolean b0,b3,b4;
 	printf("Writing registers 0xd04, d08 for EVT\n");
 	b0=arv_device_write_register (device, 0xd04, 0x40000000|packet_size, NULL);	//added for EVT
+#endif
 
 	b2=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_PORT_OFFSET, stream_port, NULL);
-	
+#ifdef EVTSPECIAL	
 	b3=arv_device_write_register (device, 0xd04, packet_size, NULL);//added for EVT
 	b4=arv_device_write_register (device, 0xd08, 0, NULL);//added for EVT
-
+#endif
 	b1=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,
 				      g_htonl(*((guint32 *) address_bytes)), NULL);
 	printf("Stream_port: %u %d %d\n",stream_port,b1,b2);
+#ifdef EVTSPECIAL
 	printf("Other rturns (ignored):  %d %d %d\n",b0,b3,b4);
+#endif
 	if (!b1||
 	    !b2) {
 		arv_warning_device ("[GvDevice::create_stream] Stream configuration failed");
