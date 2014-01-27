@@ -949,7 +949,7 @@ arv_gv_device_new (GInetAddress *interface_address, GInetAddress *device_address
 	  gv_device->priv->threadCreated=0;
 	}else{
 	  gv_device->priv->threadCreated=1;
-	  printf("pthread_create succeeded for heartbeat thread in arvgvdevice.c\n");
+	  //printf("pthread_create succeeded for heartbeat thread in arvgvdevice.c\n");
 	}
 
 	arv_device_read_register (ARV_DEVICE (gv_device), ARV_GVBS_GVCP_CAPABILITY_OFFSET, &capabilities, NULL);
