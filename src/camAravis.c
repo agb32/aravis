@@ -192,7 +192,24 @@ int camSetThreadAffinityAndPriority(unsigned int *threadAffinity,int threadPrior
     printf("error in pthread_setschedparam - maybe run as root?\n");
   return 0;
 }
-
+void cameraCallbackTest(void *user_data, ArvStreamCallbackType type, ArvBuffer *buffer){
+  ArvStream *stream;
+  ArvBuffer *buf=NULL;
+  ThreadStruct *thrStruct=(ThreadStruct*)user_data;
+  CamStruct *camstr=thrStruct->camstr;
+  int cam=thrStruct->camNo;
+  if(type==ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE){
+    stream=camstr->stream[cam];
+    buf=arv_stream_try_pop_buffer(stream);
+    if(buf!=NULL){
+      //if(buf->status==ARV_BUFFER_STATUS_SUCCESS)
+      //camstr->buffer_count[cam]++;
+      arv_stream_push_buffer(stream,buf);
+    }else{
+      printf("Failed to pop buffer for %s\n",camstr->camNameList[cam]);
+    }
+  }
+}
 void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buffer){
   ArvStream *stream;
   ArvBuffer *buf=NULL;
@@ -1148,7 +1165,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
     camstr->pxlsTransferred[cam]=n;
   }
   if(rt!=0){//An error has arisen - probably dropped packet.  So how do we handle this?
-    printf("camWaitPixels got err %d (cam %d) frame[0]=%d frame[%d]=%d\n",rt,cam,camstr->userFrameNo[0],cam,camstr->userFrameNo[cam]);
+    //printf("camWaitPixels got err %d (cam %d) frame[0]=%d frame[%d]=%d\n",rt,cam,camstr->userFrameNo[0],cam,camstr->userFrameNo[cam]);
     
   }
   pthread_mutex_unlock(&camstr->camMutex[cam]);

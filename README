@@ -69,8 +69,17 @@ net.core.netdev_max_backlog = 250000
 Then use:
 sysctl -p /etc/sysctl.conf
 
+Possible options (with defaults for gpuserver shown):
+net.ipv4.udp_mem = 579720	772963	1159440
+net.ipv4.udp_rmem_min = 4096
+net.ipv4.udp_wmem_min = 4096
 
-To change framerate etc...
+And:
+sysctl -w net.core.wmem_max=16777216
+sysctl -w net.core.rmem_default=4194304
+
+
+To change framerate etc... (bobcats)
 
 arv-tool-0.2 control ProgFrameTimeEnable=true
 arv-tool-0.2 control ProgFrameTimeAbs=100000 #to set exp in us.

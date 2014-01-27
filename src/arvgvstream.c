@@ -510,7 +510,7 @@ _check_frame_completion (ArvGvStreamThreadData *thread_data,
 			  if(first==-1 && !frame->packet_data[i].received)
 			    first=i;
 			}
-			printf("Received %d/%d, first dropped %d\n",nrec,frame->n_packets,first);
+			printf("Received %d/%d, first dropped %d, total dropped %d\n",nrec,frame->n_packets,first,frame->n_packets-nrec);
 			_close_frame (thread_data, frame);
 			thread_data->frames = iter->next;
 			g_slist_free_1 (iter);
@@ -602,6 +602,7 @@ arv_gv_stream_thread (void *data)
 	int i;
 	int broadcast=0;
 	gboolean first_packet = TRUE;
+	guint32 lastPacket=0;
 
 	thread_data->frames = NULL;
 
@@ -638,6 +639,11 @@ arv_gv_stream_thread (void *data)
 
 			frame_id = arv_gvsp_packet_get_frame_id (packet);
 			packet_id = arv_gvsp_packet_get_packet_id (packet);
+			
+			if(packet_id!=lastPacket+1 && packet_id!=0){
+			  printf("Skipped packet %u -> %u for frame %u\n",lastPacket,packet_id,frame_id);
+			}
+			lastPacket=packet_id;
 
 			if (first_packet) {
 				thread_data->last_frame_id = frame_id - 1;
