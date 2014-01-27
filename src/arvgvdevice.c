@@ -478,8 +478,8 @@ arv_gv_device_take_control (ArvGvDevice *gv_device)
 					     ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_CONTROL, NULL);
 
 	//agb for EVT.
-	//printf("arv_gv_device_take_control sending 0xbb8 to address 0x954 for EVT\n");
-	//arv_device_write_register (ARV_DEVICE (gv_device),0x954,0/*0xbb8*/, NULL);
+	printf("arv_gv_device_take_control sending 0xbb8 to address 0x954 for EVT\n");
+	arv_device_write_register (ARV_DEVICE (gv_device),0x954,0/*0xbb8*/, NULL);
 
 
 	gv_device->priv->io_data->is_controller = success;
@@ -498,8 +498,8 @@ arv_gv_device_leave_control (ArvGvDevice *gv_device)
 	gv_device->priv->io_data->is_controller = FALSE;
 
 	//agb for EVT.
-	//printf("arv_gv_device_take_control sending 0x0 to address 0x954 for EVT\n");
-	//arv_device_write_register (ARV_DEVICE (gv_device),0x954,0x0, NULL);
+	printf("arv_gv_device_take_control sending 0x0 to address 0x954 for EVT\n");
+	arv_device_write_register (ARV_DEVICE (gv_device),0x954,0x0, NULL);
 
 	success = arv_device_write_register (ARV_DEVICE (gv_device),
 					    ARV_GVBS_CONTROL_CHANNEL_PRIVILEGE_OFFSET, 0, NULL);
