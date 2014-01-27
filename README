@@ -78,6 +78,11 @@ And:
 sysctl -w net.core.wmem_max=16777216
 sysctl -w net.core.rmem_default=4194304
 
+Other options: 
+IRQ binding:
+http://fasterdata.es.net/host-tuning/interrupt-binding/
+
+
 
 To change framerate etc... (bobcats)
 

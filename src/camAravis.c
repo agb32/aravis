@@ -87,6 +87,7 @@ typedef struct{
   struct timeval *timestamp;
   int recordTimestamp;//option to use timestamp of last pixel arriving rather than frame number.
   int auto_socket_buffer;
+  int socket_buffer_size;
   int no_packet_resend;
   unsigned int packet_timeout;
   unsigned int frame_retention;
@@ -468,6 +469,8 @@ int startCamera(CamStruct *camstr,int cam){
       if (ARV_IS_GV_STREAM (stream)) {
 	if (camstr->auto_socket_buffer)
 	  g_object_set (stream,"socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,"socket-buffer-size", 0,NULL);
+	else
+	  g_object_set (stream,"socket-buffer-size",camstr->socket_buffer_size,0,NULL);
 	if (camstr->no_packet_resend)
 	  g_object_set (stream,"packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER,NULL);
 	g_object_set (stream,"packet-timeout", (unsigned) camstr->packet_timeout * 1000,"frame-retention", (unsigned) camstr->frame_retention * 1000,NULL);
@@ -594,6 +597,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       *camframenoSize=ncam;
     }
   }
+
   camstr->userFrameNo=*camframeno;
   camstr->ncam=ncam;
   camstr->rtcErrorBuf=rtcErrorBuf;
@@ -657,6 +661,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       camstr->threadAffinity[i*camstr->threadAffinElSize+j]=0xffffffff;
   }
   //And then we set up the rest, start the streams etc.
+  camstr->socket_buffer_size=npxls*16;//make it big enough for several frames. - for testing evt
   camstr->no_packet_resend=1;
   camstr->packet_timeout=20;//in ms.  Might be too low for slow cameras?  Fix if needed.
   camstr->frame_retention=100;//in ms.
