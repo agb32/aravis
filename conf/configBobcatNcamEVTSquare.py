@@ -16,31 +16,61 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
-#import correlation
+#This one does N bobcats, and then the EVT.
+#Also, does with square images... ie sub-windows the detectors.
+
 import string
 import FITS
 import tel
 import numpy
+try:
+    print prefix
+except:
+    prefix="bob"
+    print prefix
 
-nacts=54#97#54#+256
-ncam=1
+nacts=865#97#54#+256
+if prefix[:3]=="bob":
+    if len(prefix)>3:
+        try:
+            ncam=int(prefix[3:])
+        except:
+            ncam=1
+    else:
+        ncam=1
+else:
+    try:
+        ncam=int(prefix)
+    except:
+        ncam=4
+ncam+=1 #Add the EVT.
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=1088
+npxly[:]=488
+npxly[-1]=1088#EVT
 npxlx=npxly.copy()
-npxlx[:]=2048
+npxlx[:]=488#648
+npxlx[-1]=1088#2048#EVT
 nsuby=npxlx.copy()
-nsuby[:]=30#for config purposes only... not sent to rtc
+nsuby[:]=31#for config purposes only... not sent to rtc
+nsuby[-1]=62#the EVT
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
 nsub=nsubx*nsuby#This is used by rtc.
 nsubaps=nsub.sum()#(nsuby*nsubx).sum()
-individualSubapFlag=tel.Pupil(30,15,2,30).subflag.astype("i")
+individualSubapFlag=tel.Pupil(31,15.5,2,31).subflag.astype("i")
 subapFlag=numpy.zeros((nsubaps,),"i")
-for i in range(ncam):
+for i in range(ncam-1):
     tmp=subapFlag[nsub[:i].sum():nsub[:i+1].sum()]
     tmp.shape=nsuby[i],nsubx[i]
     tmp[:]=individualSubapFlag
+#now the EVT
+tmp=subapFlag[nsub[:-1].sum():nsub.sum()]
+tmp.shape=nsuby[-1],nsubx[-1]
+tmp[:31,:31]=individualSubapFlag
+tmp[31:,:31]=individualSubapFlag
+tmp[:31,31:]=individualSubapFlag
+tmp[31:,31:]=individualSubapFlag
 #ncents=nsubaps*2
 ncents=subapFlag.sum()*2
 npxls=(npxly*npxlx).sum()
@@ -60,10 +90,17 @@ for i in range(ncam):
 
 # now set up a default subap location array...
 #this defines the location of the subapertures.
-subx=[10]*ncam#(npxlx-48)/nsubx
-suby=[10]*ncam#(npxly-8)/nsuby
-xoff=[24]*ncam
-yoff=[4]*ncam
+
+subx=numpy.array([14]*ncam)#(npxlx-nsubx*14)/nsubx
+suby=numpy.array([14]*ncam)#(npxly-8)/nsuby
+xoff=(npxlx-nsubx*subx)/2#[84]*ncam
+yoff=(npxly-nsuby*suby)/2#[4]*ncam
+#And now the EVT
+#k=ncam-1
+#subx[k]=(npxlx[k]-1088)/nsubx[k]
+#suby[k]=(npxly[k]-128)/nsuby[k]
+#xoff[k]=544
+#yoff[k]=64
 for k in range(ncam):
     for i in range(nsuby[k]):
         for j in range(nsubx[k]):
@@ -79,7 +116,12 @@ for k in range(ncam):
         #n=(subapLocation[indx,1]-1)*npxlx[k]+subapLocation[indx,4]
         n=subapLocation[indx,1]*npxlx[k]#whole rows together...
         pxlCnt[indx]=n
-pxlCnt[-12]=npxlx[0]*npxly[0]
+#set the last pixel counts to full image...
+for k in range(ncam):
+    sf=subapFlag[nsub[:k].sum():nsub[:k+1].sum()]
+    indx=numpy.where(sf==1)[0][-1]
+    pxlCnt[indx+nsub[:k].sum()]=npxlx[k]*npxly[k]
+#pxlCnt[-13]=1088*2048
 #pxlCnt[-5]=128*256
 #pxlCnt[-6]=128*256
 #pxlCnt[nsubaps/2-5]=128*256
@@ -99,28 +141,32 @@ pxlCnt[-12]=npxlx[0]*npxly[0]
   //The names as a string.
   //recordTimestamp
 """
-camList=["EVT-20007"][:ncam]
+camList=["Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325"][:ncam-1]
+camList.append("EVT-20007")
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
 cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
-cameraParams[0:ncam]=8#8 bpp
-cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
-cameraParams[2*ncam:3*ncam]=0#x offset
+cameraParams[0:ncam]=8#8 bpp - cam0, cam1
+cameraParams[ncam:2*ncam]=15616#20736#block size - 32 rows
+cameraParams[2*ncam-1]=65536#EVT block size.
+cameraParams[2*ncam:3*ncam]=80#x offset
+cameraParams[3*ncam-1]=480#x offset, EVT
 cameraParams[3*ncam:4*ncam]=0#y offset
 cameraParams[4*ncam:5*ncam]=50#priority
 cameraParams[5*ncam]=1#affin el size
-cameraParams[5*ncam+1:6*ncam+1]=-1#affinity
+cameraParams[5*ncam+1:6*ncam+1]=0xfc0fc0#affinity
 cameraParams[6*ncam+1]=namelen#number of bytes for the name.
 cameraParams[6*ncam+2:6*ncam+2+(namelen+3)//4].view("c")[:]=camNames
 cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="FrameRate=20;"
-#camCommand=None
+bobcamCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
+evtcamCommand="FrameRate=20;"
+print ncents,nacts
 
 control={
     "switchRequested":0,#this is the only item in a currently active buffer that can be changed...
@@ -159,7 +205,7 @@ control={
     "gain":numpy.ones((nacts,),"f"),
     "E":numpy.zeros((nacts,nacts),"f"),#E from the tomoalgo in openloop.
     "threadAffinity":None,
-    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*49,
+    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*10,
     "delay":0,
     "clearErrors":0,
     "camerasOpen":1,
@@ -210,7 +256,7 @@ control={
     "version":" "*120,
     #"lastActs":numpy.zeros((nacts,),numpy.uint16),
     }
-if camCommand!=None:
-    for i in range(ncam):
-        control["aravisCmd%d"%i]=camCommand
+for i in range(ncam-1):
+    control["aravisCmd%d"%i]=bobcamCommand
+control["aravisCmd%d"%(ncam-1)]=evtcamCommand
 #control["pxlCnt"][-3:]=npxls#not necessary, but means the RTC reads in all of the pixels... so that the display shows whole image

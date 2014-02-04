@@ -16,7 +16,7 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
-#import correlation
+#This one uses the EVT, but with offsets so the image is square.
 import string
 import FITS
 import tel
@@ -27,9 +27,9 @@ ncam=1
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=1088
+npxly[:]=1024#1088 full frame
 npxlx=npxly.copy()
-npxlx[:]=2048
+npxlx[:]=1024#2048 full frame
 nsuby=npxlx.copy()
 nsuby[:]=30#for config purposes only... not sent to rtc
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
@@ -107,12 +107,12 @@ while len(camNames)%4!=0:
 namelen=len(camNames)
 cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
 cameraParams[0:ncam]=8#8 bpp
-cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
-cameraParams[2*ncam:3*ncam]=0#x offset
-cameraParams[3*ncam:4*ncam]=0#y offset
+cameraParams[ncam:2*ncam]=65536#block size - 64 rows in this case
+cameraParams[2*ncam:3*ncam]=512#x offset
+cameraParams[3*ncam:4*ncam]=32#y offset
 cameraParams[4*ncam:5*ncam]=50#priority
 cameraParams[5*ncam]=1#affin el size
-cameraParams[5*ncam+1:6*ncam+1]=-1#affinity
+cameraParams[5*ncam+1:6*ncam+1]=0xfc0fc0#affinity
 cameraParams[6*ncam+1]=namelen#number of bytes for the name.
 cameraParams[6*ncam+2:6*ncam+2+(namelen+3)//4].view("c")[:]=camNames
 cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
