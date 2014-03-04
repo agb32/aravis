@@ -28,8 +28,8 @@ try:
 except:
     prefix="bob"
     print prefix
-
-nacts=865#97#54#+256
+nactXinetics=96
+nacts=nactXinetics+1024
 if prefix[:3]=="bob":
     if len(prefix)>3:
         try:
@@ -169,6 +169,32 @@ bobcamCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
 evtcamCommand="FrameRate=20;"
 print ncents,nacts
 
+
+host="10.0.2.10"
+while len(host)%4!=0:
+    host+='\0'
+mirrorName="libmirrorPdAO32Socket.so"
+mirrorParams=numpy.zeros((7+len(host)//4,),"i")
+mirrorParams[0]=1#affin elsize
+mirrorParams[1]=1#priority
+mirrorParams[2]=-1#affinity
+mirrorParams[3]=0#timeout
+mirrorParams[4]=4288#port on receiver
+mirrorParams[5]=0#send prefix
+mirrorParams[6]=0#as float
+mirrorParams[7:]=numpy.fromstring(host,dtype="i")
+actInit=None#numpy.ones((96,),numpy.uint16)*32768
+actMin=numpy.zeros((nacts,),numpy.uint16)
+actMin[:nactXinetics]=32768#don't let xinetics go below 0V.
+actMax=numpy.ones((nacts,),numpy.uint16)*65535
+actOffset=None
+actMapping=None
+actSource=None
+actScale=None
+actPower=None
+
+
+
 control={
     "switchRequested":0,#this is the only item in a currently active buffer that can be changed...
     "pause":0,
@@ -182,8 +208,8 @@ control={
     "centroidWeight":None,
     "v0":numpy.ones((nacts,),"f")*32768,#v0 from the tomograhpcic algorithm in openloop (see spec)
     "bleedGain":0.0,#0.05,#a gain for the piston bleed...
-    "actMax":numpy.ones((nacts,),numpy.uint16)*65535,#4095,#max actuator value
-    "actMin":numpy.zeros((nacts,),numpy.uint16),#4095,#max actuator value
+    "actMax":actMax,
+    "actMin":actMin,
     "nacts":nacts,
     "ncam":ncam,
     "nsub":nsub,
@@ -213,7 +239,7 @@ control={
     "camerasFraming":1,
     "cameraName":"libcamAravis.so",#"camfile",
     "cameraParams":cameraParams,
-    "mirrorName":"libmirror.so",
+    "mirrorName":"libmirrorPdAO32Socket.so",
     "mirrorParams":None,
     "mirrorOpen":0,
     "frameno":0,
@@ -256,6 +282,14 @@ control={
     "maxAdapOffset":0,
     "version":" "*120,
     #"lastActs":numpy.zeros((nacts,),numpy.uint16),
+    "actInit":actInit,
+    "actMapping":actMapping,
+    "actSource":actSource,
+    "actOffset":actOffset,
+    "actPower":actPower,
+    "actScale":actScale,
+    "nactInitPdao32":None,
+    "nactPdao32":nactXinetics,
     }
 for i in range(ncam-1):
     control["aravisCmd%d"%i]=bobcamCommand
