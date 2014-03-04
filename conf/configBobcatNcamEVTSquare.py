@@ -46,6 +46,7 @@ else:
 ncam+=1 #Add the EVT.
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
+ncamThreads[-1]=2
 npxly=numpy.zeros((ncam,),numpy.int32)
 npxly[:]=488
 npxly[-1]=1088#EVT
