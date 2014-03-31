@@ -36,6 +36,9 @@ sudo yum install gstreamer
 sudo yum install glib2
 sudo yum install intltool
 
+fc20:
+sudo yum install gstreamer-plugins-base-devel libnotify-devel gtk2-devel gtk3-devel gtk+-devel gstreamer-devel libxml2-devel libxml2 libxml-devel glibc-devel glib2-devel gstreamer-0.10 gstreamer glib2 intltool
+
 
 Ubuntu: intltool gstreamer-0.10 libnotify-dev gtk+-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libgtk2.0-dev gstreamer0.10-plugins-bad
 
