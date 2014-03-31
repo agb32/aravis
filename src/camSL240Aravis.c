@@ -73,8 +73,8 @@ typedef struct{
   volatile int *pxlcnt;//number of pixels received for this frame and buffer
   //int pxlsRequested;//number of pixels requested by DMA for this frame
   pthread_mutex_t *camMutex;
-  pthread_cond_t *cond;//sync between main RTC
-  pthread_cond_t *cond2;//sync between main RTC
+  pthread_cond_t *camCond;//sync between main RTC
+  pthread_cond_t *camCond2;//sync between main RTC
   int *blocksize;//number of pixels to transfer per DMA;
   int **DMAbuf;//a buffer for receiving the DMA - 4*(sizeof(short)*npxls+HDRSIZE).  If a DMA requires a specific word alignment, we may need to reconsider this...
   int ncamSL240;
@@ -116,9 +116,9 @@ typedef struct{
   void **values;
   char *dtype;
   int *ntoread;//number of frames to read this iteration - usually 1, unless frame numbers are different (ie cameras have become out of sync).
-  int resync;//if set, will attempt to resynchronise cameras that have different frame numbers, by reading more frames from this one (number of extra frames is equal to the value of resync
-  int wpuCorrection;//whether to apply the correction if a camera is missing frames occasionally.
-  //int *readStarted;
+  //int resync;//if set, will attempt to resynchronise cameras that have different frame numbers, by reading more frames from this one (number of extra frames is equal to the value of resync
+  //int wpuCorrection;//whether to apply the correction if a camera is missing frames occasionally.
+  int *readStarted;
   int *gotsyncdv;//flag to whether syncdv has already been received while reading a truncated frame.
   int skipFrameAfterBad;//flag - whether to skip a frame after a bad frame.
   int *testLastPixel;//value for each camera - if nonzero, and one of the last this many pixels pixel are non-zero, flags as a bad frame.  Assumes that at least one subap will require all ccd pixels to be read (set in the config file - though this may increase latency, if not all pixels required).
@@ -126,8 +126,12 @@ typedef struct{
   int pxlRowEndInsertThreshold;//If a pixel at the end of a row falls below this threshold, then an extra pixel is inserted here - meaning that all future pixels are shifted one to the right.
   int *pxlShift;//the total shift of pixels (-1 for pixel removed, +1 for pixel inserted).
   int *pxlx;
+  int *pxly;
   circBuf *rtcErrorBuf;
   int *frameReady;
+  int *offsetX;
+  int *offsetY;
+  struct timeval *timestamp;
   int recordTimestamp;//option to use timestamp of last pixel arriving rather than frame number.
   int *camErr;
 
@@ -174,8 +178,8 @@ void dofree(CamStruct *camstr){
       free(camstr->DMAbuf);
     }
     for(i=0; i<camstr->ncam; i++){
-      pthread_cond_destroy(&camstr->cond[i]);
-      pthread_cond_destroy(&camstr->cond2[i]);
+      pthread_cond_destroy(&camstr->camCond[i]);
+      pthread_cond_destroy(&camstr->camCond2[i]);
       pthread_mutex_destroy(&camstr->camMutex[i]);
     }
     //pthread_mutex_destroy(&camstr->m);
@@ -198,7 +202,7 @@ void dofree(CamStruct *camstr){
     safefree(camstr->blocksize);
     safefree((void*)camstr->pxlcnt);
     safefree(camstr->ntoread);
-    //safefree(camstr->readStarted);
+    safefree(camstr->readStarted);
     safefree((void*)camstr->waiting);
     safefree((void*)camstr->newframe);
     safefree(camstr->camErr);
@@ -249,7 +253,7 @@ void dofree(CamStruct *camstr){
 }
 
 
-int setThreadAffinityAndPriority(unsigned int *threadAffinity,int threadPriority,int threadAffinElSize){
+int camSetThreadAffinityAndPriority(unsigned int *threadAffinity,int threadPriority,int threadAffinElSize){
   int i;
   cpu_set_t mask;
   int ncpu;
@@ -671,7 +675,9 @@ int startCamera(CamStruct *camstr,int cam){
   return rt;
 }
 
-
+void* workerAravis(void *thrstrv){
+  return NULL;
+}
 
 /**
    The threads that does the work...
@@ -689,7 +695,7 @@ void* workerSL240(void *thrstrv){
   int bufindx=-1;
   
   printf("Calling setThreadAffinityAndPriority\n");
-  setThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
+  camSetThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
   //pthread_mutex_lock(&camstr->camMutex[cam]);
   camstr->ntoread[cam]=1;
   //if(camstr->thrcnt==0){//first frame...
@@ -762,7 +768,7 @@ void* workerSL240(void *thrstrv){
 	    }
 	    if(camstr->waiting[cam]==1){//the RTC is waiting for the newest pixels, so wake it up.
 	      camstr->waiting[cam]=0;
-	      pthread_cond_broadcast(&camstr->cond[cam]);//signal should do.
+	      pthread_cond_broadcast(&camstr->camCond[cam]);//signal should do.
 	    }
 	    pthread_mutex_unlock(&camstr->camMutex[cam]);
 	  }
@@ -783,7 +789,7 @@ void* workerSL240(void *thrstrv){
     camstr->err[NBUF*cam+bufindx]=err;
     if(err && camstr->waiting[cam]){//the RTC is waiting for the newest pixels, so wake it up, but an error has occurred.
       camstr->waiting[cam]=0;
-      pthread_cond_broadcast(&camstr->cond[cam]);
+      pthread_cond_broadcast(&camstr->camCond[cam]);
     }
     //We've finished this frame, so:
     /*
@@ -832,7 +838,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   unsigned short *tmps;
   char **reorderCC;
   char pxlbuftype;
-  int maxbpp;
+  int maxbpp,ncamSL240;
   int bytespp,camIDLen=0,nn;
   char **camParamName;
   printf("Initialising camera %s\n",name);
@@ -865,7 +871,6 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     arr->pxlbufs=tmps;
     memset(arr->pxlbufs,0,arr->pxlbufsSize);
   }
-  todo("set ncamSL240");
   if(n>0)
     camstr->threadAffinElSize=args[0];
   camstr->imgdata=arr->pxlbufs;
@@ -892,7 +897,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->blocksize=calloc(ncam,sizeof(int)));
   TEST(camstr->pxlcnt=calloc(ncam*NBUF,sizeof(int)));
   TEST(camstr->ntoread=calloc(ncam,sizeof(int)));
-  //TEST(camstr->readStarted=calloc(ncam,sizeof(int)));
+  TEST(camstr->readStarted=calloc(ncam,sizeof(int)));
   TEST(camstr->waiting=calloc(ncam,sizeof(int)));
   TEST(camstr->newframe=calloc(ncam,sizeof(int)));
   TEST(camstr->pxlsTransferred=calloc(ncam,sizeof(int)));
@@ -903,8 +908,8 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->err=calloc(ncam*NBUF,sizeof(int)));
   TEST(camstr->thrStruct=calloc(ncam,sizeof(ThreadStruct)));
   TEST(camstr->threadid=calloc(ncam,sizeof(pthread_t)));
-  TEST(camstr->cond=calloc(ncam,sizeof(pthread_cond_t)));
-  TEST(camstr->cond2=calloc(ncam,sizeof(pthread_cond_t)));
+  TEST(camstr->camCond=calloc(ncam,sizeof(pthread_cond_t)));
+  TEST(camstr->camCond2=calloc(ncam,sizeof(pthread_cond_t)));
   TEST(camstr->camMutex=calloc(ncam,sizeof(pthread_mutex_t)));
   TEST(camstr->threadAffinity=calloc(ncam*camstr->threadAffinElSize,sizeof(int)));
   TEST(camstr->threadPriority=calloc(ncam,sizeof(int)));
@@ -916,11 +921,15 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->gotsyncdv=calloc(ncam,sizeof(int)));
   TEST(camstr->pxlShift=calloc(ncam*2,sizeof(int)));
   TEST(camstr->pxlx=calloc(ncam,sizeof(int)));
+  TEST(camstr->pxly=calloc(ncam,sizeof(int)));
   TEST(camstr->frameReady=calloc(ncam,sizeof(int)));
   TEST(camstr->curframe=calloc(ncam,sizeof(int)));
   TEST(camstr->latestframe=calloc(ncam,sizeof(int)));
   TEST(camstr->transferframe=calloc(ncam,sizeof(int)));
   TEST(camstr->camErr=calloc(ncam,sizeof(int*)));
+  TEST(camstr->offsetX=calloc(ncam,sizeof(int)));
+  TEST(camstr->offsetY=calloc(ncam,sizeof(int)));
+  TEST(camstr->timestamp=calloc(ncam,sizeof(struct timeval)));
 
   TEST(camstr->bpp=calloc(sizeof(int),ncam));
 
@@ -928,6 +937,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   printf("malloced things\n");
   for(i=0; i<ncam; i++){
     camstr->pxlx[i]=pxlx[i];
+    camstr->pxly[i]=pxly[i];
     camstr->npxlsArr[i]=pxlx[i]*pxly[i];
     camstr->npxlsArrCum[i+1]=camstr->npxlsArrCum[i]+camstr->npxlsArr[i];
     /*if(camstr->npxlsArr[i]&1){
@@ -947,6 +957,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   //camIDLen, gigE camera IDs
   es=args[0];
   camstr->ncamSL240=args[1];
+  ncamSL240=camstr->ncamSL240;
   if(n>=(6+es)*ncam+2 && n<=(6+es)*ncam+8){
     int j;
     for(i=0; i<ncamSL240; i++){
@@ -968,19 +979,18 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       for(j=0;j<es;j++)
 	camstr->threadAffinity[(i+ncamSL240)*es+j]=((unsigned int*)&args[ncamSL240*(6+es)+7+i*(5+es)])[j];//affin
     }
-    bolox
-    if(n>=(6+es)*ncam+2){
-      camstr->resync=args[(6+es)*ncam+1];
-    }else{
-      camstr->resync=10;
-    }
-    if(n>=(6+es)*ncam+3){
-      camstr->wpuCorrection=args[(6+es)*ncam+2];
-    }else{
-      camstr->wpuCorrection=0;
-    }
-    if(n>=(6+es)*ncam+4){
-      camstr->skipFrameAfterBad=args[(6+es)*ncam+3];
+    //if(n>=(6+es)*ncam+2){
+    // camstr->resync=args[(6+es)*ncam+1];
+    //}else{
+    //  camstr->resync=10;
+    //}
+    //if(n>=(6+es)*ncam+3){
+    //  camstr->wpuCorrection=args[(6+es)*ncam+2];
+    //}else{
+    //  camstr->wpuCorrection=0;
+    //}
+    if(n>ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+2){
+      camstr->skipFrameAfterBad=args[ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+2];
       printf("skipFrameAfterBad %d\n",camstr->skipFrameAfterBad);
     }else{
       camstr->skipFrameAfterBad=0;
@@ -991,25 +1001,25 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     }else{
       camstr->testLastPixel=0;
       }*/
-    if(n>=(6+es)*ncam+5){
-      camstr->pxlRowStartSkipThreshold=args[(6+es)*ncam+4];
+    if(n>ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+3){
+      camstr->pxlRowStartSkipThreshold=args[ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+3];
       printf("pxlRowStartSkipThreshold %d\n",camstr->pxlRowStartSkipThreshold);
     }else{
       camstr->pxlRowStartSkipThreshold=0;
     }
-    if(n>=(6+es)*ncam+6){
-      camstr->pxlRowEndInsertThreshold=args[(6+es)*ncam+5];
+    if(n>ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+4){
+      camstr->pxlRowEndInsertThreshold=args[ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+4];
       printf("pxlRowEndInsertThreshold %d\n",camstr->pxlRowEndInsertThreshold);
     }else{
       camstr->pxlRowEndInsertThreshold=0;
     }
-    if(n>=(6+es)*ncam+7){
-      camstr->recordTimestamp=args[(6+es)*ncam+6];
+    if(n>ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+5){
+      camstr->recordTimestamp=args[ncamSL240*(6+es)+(ncam-ncamSL240)*(5+es)+5];
     }else{
       camstr->recordTimestamp=0;
     }
   }else{
-    printf("wrong number of cmd args, should be Naffin, (blocksize, timeout, fibreport, thread priority, reorder, testLastPixel, thread affinity[Naffin]),( blocksize,...) for each camera (ie (6+args[0])*ncam) + optional value, resync, equal to max number of frames to try to resync cameras with, plus other optional value wpuCorrection - whether to read extra frame if the WPU cameras get out of sync (ie if a camera doesn't produce a frame occasionally), and another optional flag, whether to skip a frame after a bad frame, and 2 more optional flags, pxlRowStartSkipThreshold, pxlRowEndInsertThreshold if doing a WPU correction based on dark column detection, recordTimestamp if want frame numbers to be last pixel received time in us.\n");
+    printf("wrong number of cmd args, should be Naffin,nSL240, (blocksize, timeout, fibreport, thread priority, reorder, testLastPixel, thread affinity[Naffin]) repeated for nSL240,( bpp,blocksize,offsetx,offsety,priority, affinity[Naffin]) repeated for ncam-nSL240 + optional value: whether to skip a frame after a bad frame, and 3 more optional flags, pxlRowStartSkipThreshold, pxlRowEndInsertThreshold if doing a WPU correction based on dark column detection, recordTimestamp if want frame numbers to be last pixel received time in us.\n");
     dofree(camstr);
     *camHandle=NULL;
     return 1;
@@ -1076,13 +1086,13 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   }
   camstr->nReorders=ngot;
   for(i=0; i<ncam; i++){
-    if(pthread_cond_init(&camstr->cond[i],NULL)!=0){
+    if(pthread_cond_init(&camstr->camCond[i],NULL)!=0){
       printf("Error initialising condition variable %d\n",i);
       dofree(camstr);
       *camHandle=NULL;
       return 1;
     }
-    if(pthread_cond_init(&camstr->cond2[i],NULL)!=0){
+    if(pthread_cond_init(&camstr->camCond2[i],NULL)!=0){
       printf("Error initialising condition variable2 %d\n",i);
       dofree(camstr);
       *camHandle=NULL;
@@ -1220,7 +1230,7 @@ int camClose(void **camHandle){
   camstr->open=0;
   for(i=0; i<camstr->ncam; i++){
     pthread_mutex_lock(&camstr->camMutex[i]);
-    pthread_cond_broadcast(&camstr->cond[i]);
+    pthread_cond_broadcast(&camstr->camCond[i]);
     pthread_mutex_unlock(&camstr->camMutex[i]);
   }
   for(i=0; i<camstr->ncam; i++){
@@ -1362,20 +1372,20 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  //what should we do about errors here?  
 	  //We don't care about errors here.  Since we're waiting for a new frame, it means we've completed previous frames.  So, can simply reset camErr to zero.
 	  camstr->waiting[cam]=1;
-	  pthread_cond_wait(&camstr->cond[cam],&camstr->camMutex[cam]);
+	  pthread_cond_wait(&camstr->camCond[cam],&camstr->camMutex[cam]);
 	}
 	camstr->camErr[cam]=0;//we're waiting for a new frame - so don't care about errors - and if a frame has an error it won't appear on curframe, or latestframe, so we're okay to ignore.
       }
       //wake the other threads for this camera that are waiting
       //camstr->userFrameNo[cam]=xxx;
       camstr->frameReady[cam]=1;
-      pthread_cond_broadcast(&camstr->cond2[cam]);
+      pthread_cond_broadcast(&camstr->camCond2[cam]);
     }else{//wait for aravis pixels
     }
 
   }else{//we're not the first thread for this frame/camera
     while(camstr->frameReady[cam]==0){
-      pthread_cond_wait(&camstr->cond2[cam],&camstr->camMutex[cam]);
+      pthread_cond_wait(&camstr->camCond2[cam],&camstr->camMutex[cam]);
     }
   }
   if(cam<camstr->ncamSL240){//this is a SL240 camera...
@@ -1385,7 +1395,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
     }
     while(camstr->pxlcnt[NBUF*cam+camstr->transferframe[cam]]<n && rt==0 && camstr->camErr[cam]==0){
       camstr->waiting[cam]=1;
-      pthread_cond_wait(&camstr->cond[cam],&camstr->camMutex[cam]);
+      pthread_cond_wait(&camstr->camCond[cam],&camstr->camMutex[cam]);
       rt=camstr->err[NBUF*cam+camstr->transferframe[cam]];
     }
     if(camstr->setFrameNo[cam]){//save the frame counter...
@@ -1476,7 +1486,10 @@ int camFrameFinishedSync(void *camHandle,int err,int forcewrite){//subap thread 
 
   if(camstr->recordTimestamp){//an option to put camera frame number as us time
     for(i=0; i<camstr->ncam; i++){
-      camstr->userFrameNo[i]=*((unsigned int*)(&(camstr->DMAbuf[i][(camstr->transferframe[i])*(camstr->npxlsArr[i]+HDRSIZE/sizeof(int))])));
+      if(i<camstr->ncamSL240)
+	camstr->userFrameNo[i]=*((unsigned int*)(&(camstr->DMAbuf[i][(camstr->transferframe[i])*(camstr->npxlsArr[i]+HDRSIZE/sizeof(int))])));
+      else
+	camstr->userFrameNo[i]=camstr->timestamp[i].tv_sec*1000000+camstr->timestamp[i].tv_usec;
     }
   }else{
     for(i=1; i<camstr->ncam; i++){
