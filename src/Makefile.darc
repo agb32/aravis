@@ -5,7 +5,7 @@ libcamAravis.so: camAravis.c
 	/sbin/ldconfig -n ./
 	rm -f libcamAravis.so
 	ln -s libcamAravis.so.1 libcamAravis.so
-	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/lib)"
+	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/darc/lib)"
 
 
 install: libcamAravis.so
@@ -26,7 +26,7 @@ libcamSL240Aravis.so: camSL240Aravis.c
 	/sbin/ldconfig -n ./
 	rm -f libcamSL240Aravis.so
 	ln -s libcamSL240Aravis.so.1 libcamSL240Aravis.so
-	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/lib)"
+	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/darc/lib)"
 
 libcamSL240AravisNOSL240.so: camSL240Aravis.c
 	gcc -D_GNU_SOURCE -DNOSL240 -DPLATFORM_UNIX -fPIC -O3 $(OPTS) -Wall -c camSL240Aravis.c `pkg-config --cflags glib-2.0` -I/rtc/include -I/opt/darc/include -I/opt/nsl/inc -I.	 
@@ -34,5 +34,5 @@ libcamSL240AravisNOSL240.so: camSL240Aravis.c
 	/sbin/ldconfig -n ./
 	rm -f libcamSL240AravisNOSL240.so
 	ln -s libcamSL240AravisNOSL240.so.1 libcamSL240AravisNOSL240.so
-	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/lib)"
+	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/darc/lib)"
 
