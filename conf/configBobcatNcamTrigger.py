@@ -78,10 +78,10 @@ for i in range(ncam):
 
 # now set up a default subap location array...
 #this defines the location of the subapertures.
-subx=(npxlx-48)/nsubx
-suby=(npxly-8)/nsuby
-xoff=[24]*ncam
-yoff=[4]*ncam
+subx=(npxlx-0)/nsubx
+suby=(npxly-0)/nsuby
+xoff=[0]*ncam
+yoff=[0]*ncam
 for k in range(ncam):
     for i in range(nsuby[k]):
         for j in range(nsubx[k]):
