@@ -137,7 +137,7 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="GevSCPSPacketSize=7000;ProgFrameTimeAbs=20000;TriggerMode=On;TriggerType=Fast;ExposureTimeRaw=100;"#ProgFrameTimeEnable=true;
+camCommand="GevSCPSPacketSize=7000;ProgFrameTimeAbs=20000;TriggerMode=Off;TriggerType=Fast;ExposureTimeRaw=100;"#ProgFrameTimeEnable=true;
 
 
 control={
