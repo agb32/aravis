@@ -137,7 +137,7 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="ProgFrameTimeEnable=false;ProgFrameTimeAbs=6000;TriggerMode=On;TriggerType=Fast;ExposureTimeRaw=2;"
+camCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=6000;TriggerMode=On;TriggerType=Fast;ExposureTimeRaw=2;"
 
 
 control={
