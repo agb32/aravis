@@ -45,9 +45,9 @@ else:
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=488
+npxly[:]=480
 npxlx=npxly.copy()
-npxlx[:]=648
+npxlx[:]=480
 nsuby=npxlx.copy()
 nsuby[:]=30#for config purposes only... not sent to rtc
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
@@ -126,8 +126,8 @@ namelen=len(camNames)
 cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
 cameraParams[0:ncam]=8#8 bpp - cam0, cam1
 cameraParams[ncam:2*ncam]=5184#block size
-cameraParams[2*ncam:3*ncam]=0#x offset
-cameraParams[3*ncam:4*ncam]=0#y offset
+cameraParams[2*ncam:3*ncam]=84#x offset
+cameraParams[3*ncam:4*ncam]=4#y offset
 cameraParams[4*ncam:5*ncam]=50#priority
 cameraParams[5*ncam]=1#affin el size
 cameraParams[5*ncam+1:6*ncam+1]=-1#affinity
@@ -137,7 +137,7 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"#TriggerMode=On
+camCommand="ProgFrameTimeEnable=false;ProgFrameTimeAbs=6000;TriggerMode=On;TriggerType=Fast;ExposureTimeRaw=2;"
 
 
 control={
