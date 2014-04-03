@@ -1495,7 +1495,7 @@ int camNewParam(void *camHandle,paramBuf *pbuf,unsigned int frameno,arrayStruct 
 	      camstr->prevCmd[i]=strndup(camstr->values[i],camstr->nbytes[i]);
 	      if(!strncmp("aravisCmdAll",&camstr->paramNames[i*BUFNAMESIZE],12)){
 		printf("Calling sendCamCommand for all cameras, cmd %s\n",camstr->prevCmd[i]);
-		for(j=0;j<camstr->ncam;j++)
+		for(j=camstr->ncamSL240;j<camstr->ncam;j++)
 		  err|=sendCamCommand(camstr,j,camstr->prevCmd[i]);
 	      }else{
 		cam=atoi(&camstr->paramNames[i*BUFNAMESIZE+9]);
