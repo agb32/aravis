@@ -45,9 +45,9 @@ else:
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=480
+npxly[:]=488
 npxlx=npxly.copy()
-npxlx[:]=480
+npxlx[:]=648
 nsuby=npxlx.copy()
 nsuby[:]=30#for config purposes only... not sent to rtc
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
