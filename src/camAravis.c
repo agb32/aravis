@@ -221,7 +221,6 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   int cam=thrStruct->camNo;
   struct timeval t1;
   char tbuf[16];
-
   //copy into dmabuf?  Or into pxlarr?
   //No, I think leave it where it is.  Need some scheme of putting buffers on a stack, and letting the rtcs pick most recent one.
   //3 pointers (for each camera):  rtcReading, currentFilling, mostRecentFilled.  

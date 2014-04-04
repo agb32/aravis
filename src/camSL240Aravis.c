@@ -439,6 +439,8 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   ThreadStruct *thrStruct=(ThreadStruct*)user_data;
   CamStruct *camstr=thrStruct->camstr;
   int cam=thrStruct->camNo;
+  struct timeval t1;
+  char tbuf[16];
   //copy into dmabuf?  Or into pxlarr?
   //No, I think leave it where it is.  Need some scheme of putting buffers on a stack, and letting the rtcs pick most recent one.
   //3 pointers (for each camera):  rtcReading, currentFilling, mostRecentFilled.  
@@ -519,7 +521,9 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
     //Really, should check status of buffer->status, but I think there may be a bug.  So, here, instead check whether buffer->contiguous_data_received==buffer->size
     //printf("Frame status: %d;  Success: %d\n",buffer->status,buffer->status==ARV_BUFFER_STATUS_SUCCESS);
     if(buffer->contiguous_data_received!=buffer->size){
-      printf("Not all frame received (status=%d, success value=%d, contig: %d/%ld)\n",buffer->status,ARV_BUFFER_STATUS_SUCCESS,buffer->contiguous_data_received,buffer->size);
+      gettimeofday(&t1,NULL);
+      strftime(tbuf,sizeof(tbuf),"%H:%M:%S",gmtime(&t1.tv_sec));
+      printf("Not all frame received (sta=%d, suc=%d, contig: %d/%ld) %s.%06d\n",buffer->status,ARV_BUFFER_STATUS_SUCCESS,buffer->contiguous_data_received,buffer->size,tbuf,(int)t1.tv_usec);
       //Notify the main threads, after setting an error.
       //Note - this is only an error if something has started accessing the data in the first place - in which case currentFilling will be NULL.
       pthread_mutex_lock(&camstr->camMutex[cam]);
