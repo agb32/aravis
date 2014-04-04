@@ -158,6 +158,8 @@ void dofree(CamStruct *camstr){
     safefree(camstr->bpp);
     safefree(camstr->frameReady);
     safefree(camstr->bufArrList);
+    for(i=0;i<camstr->ncam+2;i++)
+      safefree(camstr->prevCmd[i]);
     safefree(camstr->prevCmd);
     safefree(camstr->nameList);
     free(camstr);
