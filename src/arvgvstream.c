@@ -743,8 +743,10 @@ arv_gv_stream_thread (void *data)
 				}
 			} else
 				thread_data->n_ignored_packets++;
-		} else
+		} else{
 			frame = NULL;
+			printf("Timeout while waiting for packets\n");
+		}
 		//if complete, will call the callback.
 		_check_frame_completion (thread_data, time_us, frame);
 	} while (!thread_data->cancel);

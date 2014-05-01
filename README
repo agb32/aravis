@@ -86,6 +86,9 @@ IRQ binding:
 http://fasterdata.es.net/host-tuning/interrupt-binding/
 
 
+dhcpd /etc/dhcp*/*.conf
+/etc/defualt/isc-dhcp-server
+
 Also - in camAravis - I now set the socket buffer to 16*npxls - so
 that it has a large enough buffer to store them all.  In reality, for
 large cameras it may get set to less than this if rmem_max is
