@@ -706,7 +706,7 @@ void* workerSL240(void *thrstrv){
       pxlcnt=0;
       //Read the start of frame...
       err=waitStartOfFrame(camstr,cam);
-      //printf("waitstartofframe %d (err %d)\n",cam,err);
+      //printf("waitstartofframe %d (err %d), nRead %d\n",cam,err,nRead);
       if(err==0){
 	//if(nRead==0)
 	//camstr->readStarted[cam]=1;
@@ -1038,7 +1038,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   }
   printf("got args\n");
   for(i=0; i<ncam; i++){
-    printf("%d %d %d\n",camstr->blocksize[i],camstr->timeout[i],camstr->fibrePort[i]);
+    printf("%d %d %d %d\n",camstr->blocksize[i],camstr->timeout[i],camstr->fibrePort[i],camstr->testLastPixel[i]);
   }
   /*
   maxbpp=0;
@@ -1620,6 +1620,14 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  camstr->transferframe[cam]=camstr->latestframe[cam];
 	  camstr->latestframe[cam]=-1;
 	  gotNewFrame=1;
+	  /*printf("Cam %d processing full buffer\n",cam);
+	  if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
+	    printf("cam %d ignoring full buffer - processing filling buffer\n",cam);
+	    camstr->transferframe[cam]=camstr->curframe[cam];
+	    camstr->curframe[cam]=-1;
+	    camstr->latestframe[cam]=-1;
+      
+	  }*/
 	}else if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
 	  //have a new buffer currently reading out
 	  camstr->transferframe[cam]=camstr->curframe[cam];
