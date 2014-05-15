@@ -740,16 +740,16 @@ void* workerSL240(void *thrstrv){
 	      camstr->curframe[cam]=-1;
 
 	    }
+	    if(camstr->recordTimestamp){//an option to put camera frame number as time in us of last pixel arriving... useful for synchronising different cameras so that last pixel arrives at same time.
+	      gettimeofday(&t1,NULL);
+	      ((unsigned int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
+	    }
 	    if(camstr->waiting[cam]==1){//the RTC is waiting for the newest pixels, so wake it up.
 	      camstr->waiting[cam]=0;
 	      pthread_cond_broadcast(&camstr->camCond[cam]);//signal should do.
 	    }
 	    pthread_mutex_unlock(&camstr->camMutex[cam]);
 	  }
-	}
-	if(camstr->recordTimestamp){//an option to put camera frame number as time in us of last pixel arriving... useful for synchronising different cameras so that last pixel arrives at same time.
-	  gettimeofday(&t1,NULL);
-	  ((unsigned int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
 	}
       }else{//error getting start of frame
 	((int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))]))[0]=0;//set frame counter to zero.
