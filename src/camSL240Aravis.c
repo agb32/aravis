@@ -23,6 +23,7 @@ The library is written for a specific camera configuration - ie in multiple came
 This one handles SL240 and (some) gigE cameras simultaneously.
 
 */
+#define RESYNC
 #ifndef NOSL240
 #include <nslapi.h>
 #else
