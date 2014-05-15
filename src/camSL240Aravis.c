@@ -561,13 +561,14 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
       buffer->last_data_accessed=0;
       printf("sof\n");
       pthread_mutex_lock(&camstr->camMutex[cam]);
-      if(camstr->ncurrentlyReading[cam]==0){
+      if(camstr->ncurrentlyReading[cam]<=0){
 	pthread_mutex_lock(&camstr->m);
 	camstr->ncurrentlyReading[cam]=camstr->ntoread[cam];
 	camstr->ntoread[cam]=1;
 	pthread_mutex_unlock(&camstr->m);
       }
-      camstr->ncurrentlyReading[cam]--;
+      if(camstr->ncurrentlyReading[cam]>0)
+	camstr->ncurrentlyReading[cam]--;
 
 
       if(camstr->readStarted[cam]==1){
@@ -632,6 +633,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   }else if(type==ARV_STREAM_CALLBACK_TYPE_INIT){//this would be a good place to change thread priority and affinity.  Called about once.
     printf("Initialised stream for %s, thread %ld, setting affinity/priority\n",camstr->camNameList[cam],pthread_self());
     camSetThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
+    camstr->ntoread[cam]=1;
   }else{//ignore the other callbacks...
   }
 }
