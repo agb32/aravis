@@ -422,7 +422,9 @@ int waitStartOfFrame(CamStruct *camstr,int cam){
 }
 
 int endFrameWait(CamStruct *camstr,int cam,int err){
+  printf("Cam %d locking\n",cam);
   pthread_mutex_lock(&camstr->m);
+  printf("Cam %d locked\n",cam);
   if(err!=0){
     if(camstr->skipFrameAfterBad>0){
       if(camstr->gotsyncdv[cam]){
@@ -451,10 +453,13 @@ int endFrameWait(CamStruct *camstr,int cam,int err){
   //Block until all threads have completed...
   if(camstr->thrcnt==camstr->ncam){//last thread to have completed this frame
     camstr->thrcnt=0;
+    printf("Cam %d broadcasting\n",cam);
     pthread_cond_broadcast(&camstr->thrcond);
   }else{
     //Threads should all wait here until all completed this frame...
+    printf("Cam %d waiting\n",cam);
     pthread_cond_wait(&camstr->thrcond,&camstr->m);
+    printf("Cam %d woken\n",cam);
   }
   camstr->readHasStarted[cam]=0;
   pthread_mutex_unlock(&camstr->m);
