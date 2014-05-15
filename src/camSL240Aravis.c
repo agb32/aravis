@@ -422,9 +422,7 @@ int waitStartOfFrame(CamStruct *camstr,int cam){
 }
 
 int endFrameWait(CamStruct *camstr,int cam,int err){
-  printf("Cam %d locking\n",cam);
   pthread_mutex_lock(&camstr->m);
-  printf("Cam %d locked\n",cam);
   if(err!=0){
     if(camstr->skipFrameAfterBad>0){
       if(camstr->gotsyncdv[cam]){
@@ -457,9 +455,7 @@ int endFrameWait(CamStruct *camstr,int cam,int err){
     pthread_cond_broadcast(&camstr->thrcond);
   }else{
     //Threads should all wait here until all completed this frame...
-    printf("Cam %d waiting\n",cam);
     pthread_cond_wait(&camstr->thrcond,&camstr->m);
-    printf("Cam %d woken\n",cam);
   }
   camstr->readHasStarted[cam]=0;
   pthread_mutex_unlock(&camstr->m);
@@ -559,7 +555,6 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
       printf("null buffer... hmmm.\n");
     }else{
       buffer->last_data_accessed=0;
-      printf("sof\n");
       pthread_mutex_lock(&camstr->camMutex[cam]);
       if(camstr->ncurrentlyReading[cam]<=0){
 	pthread_mutex_lock(&camstr->m);
