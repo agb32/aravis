@@ -559,6 +559,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
       printf("null buffer... hmmm.\n");
     }else{
       buffer->last_data_accessed=0;
+      printf("sof\n");
       pthread_mutex_lock(&camstr->camMutex[cam]);
       if(camstr->ncurrentlyReading[cam]==0){
 	pthread_mutex_lock(&camstr->m);
