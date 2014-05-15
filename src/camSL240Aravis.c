@@ -439,13 +439,15 @@ int endFrameWait(CamStruct *camstr,int cam,int err){
     }
   }
   camstr->thrcnt++;
-  if(camstr->thrcnt==1){//first thread to have completed - check that all the others have started.
+  //if(camstr->thrcnt==1){//first thread to have completed - check that all the others have started.
+  if(camstr->doneSyncCheck==0 && cam>=camstr->ncamSL){//haven't yet done a sync check, and an aravis cam has just finished...
     int doExtra=0,i;
+    camstr->doneSyncCheck=1;
     for(i=0;i<camstr->ncam;i++){
       if(camstr->readHasStarted[i]==0){//a camera hasn't started a read - so we'd better do an extra one to let it keep up.
 	printf("Read cam%d not yet started - prob frame missing\n",i);
 	doExtra=1;
-	break;
+	//break;
       }
     }
     if(doExtra){
@@ -459,6 +461,7 @@ int endFrameWait(CamStruct *camstr,int cam,int err){
   //Block until all threads have completed...
   if(camstr->thrcnt==camstr->ncam){//last thread to have completed this frame
     camstr->thrcnt=0;
+    camstr->doneSyncCheck=0;
     pthread_cond_broadcast(&camstr->thrcond);
   }else{
     //Threads should all wait here until all completed this frame...
