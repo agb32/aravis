@@ -127,6 +127,7 @@ typedef struct{
 #ifdef RESYNC
   int *readHasStarted;
   int *ncurrentlyReading;//number of frames for aravis cam to ignore.
+  int doneSyncCheck;
 #endif
   int *gotsyncdv;//flag to whether syncdv has already been received while reading a truncated frame.
   int skipFrameAfterBad;//flag - whether to skip a frame after a bad frame.
@@ -440,7 +441,7 @@ int endFrameWait(CamStruct *camstr,int cam,int err){
   }
   camstr->thrcnt++;
   //if(camstr->thrcnt==1){//first thread to have completed - check that all the others have started.
-  if(camstr->doneSyncCheck==0 && cam>=camstr->ncamSL){//haven't yet done a sync check, and an aravis cam has just finished...
+  if(camstr->doneSyncCheck==0 && cam>=camstr->ncamSL240){//haven't yet done a sync check, and an aravis cam has just finished...
     int doExtra=0,i;
     camstr->doneSyncCheck=1;
     for(i=0;i<camstr->ncam;i++){
