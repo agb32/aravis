@@ -1615,26 +1615,32 @@ int camWaitPixels(int n,int cam,void *camHandle){
     gotNewFrame=0;
     if(cam<camstr->ncamSL240){//this is waiting for sl240 pixels...
       while(gotNewFrame==0){
-	if(camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
+	if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
+	  //have a new buffer currently reading out
+	  camstr->transferframe[cam]=camstr->curframe[cam];
+	  camstr->curframe[cam]=-1;
+	  if(camstr->latestframe[cam]!=-1)
+	    printf("Skipping frame for cam %d\n",cam);
+	  camstr->latestframe[cam]=-1;
+	  gotNewFrame=1;
+	}else if(camstr->curframe[cam]==-1 && camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
 	  //have a full buffer waiting for processing.
 	  camstr->transferframe[cam]=camstr->latestframe[cam];
 	  camstr->latestframe[cam]=-1;
 	  gotNewFrame=1;
-	  /*printf("Cam %d processing full buffer\n",cam);
-	  if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
-	    printf("cam %d ignoring full buffer - processing filling buffer\n",cam);
-	    camstr->transferframe[cam]=camstr->curframe[cam];
-	    camstr->curframe[cam]=-1;
-	    camstr->latestframe[cam]=-1;
-      
-	  }*/
+	}else{//wait for next frame to start.
+
+	  /*	if(camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
+	  //have a full buffer waiting for processing.
+	  camstr->transferframe[cam]=camstr->latestframe[cam];
+	  camstr->latestframe[cam]=-1;
+	  gotNewFrame=1;
 	}else if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
 	  //have a new buffer currently reading out
 	  camstr->transferframe[cam]=camstr->curframe[cam];
 	  camstr->curframe[cam]=-1;
 	  camstr->latestframe[cam]=-1;
-	  gotNewFrame=1;
-	}else{//wait for next frame to start.
+	  gotNewFrame=1;*/
 	  //what should we do about errors here?  
 	  //We don't care about errors here.  Since we're waiting for a new frame, it means we've completed previous frames.  So, can simply reset camErr to zero.
 	  camstr->waiting[cam]=1;
@@ -1648,7 +1654,22 @@ int camWaitPixels(int n,int cam,void *camHandle){
       pthread_cond_broadcast(&camstr->camCond2[cam]);
     }else{//wait for aravis pixels
       while(gotNewFrame==0){
-	if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+	if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
+	  //havea new buffer currently reading out.
+	  camstr->rtcReading[cam]=camstr->currentFilling[cam];
+	  camstr->currentFilling[cam]=NULL;
+	  if(camstr->mostRecentFilled[cam]!=NULL)
+	    printf("Skilling frame for cam %d\n",cam);
+	  camstr->mostRecentFilled[cam]=NULL;
+	  gotNewFrame=1;
+	}else if(camstr->currentFilling[cam]==NULL && camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+	  //have a full buffer waiting for processing/
+	  camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
+	  camstr->mostRecentFilled[cam]=NULL;
+	  gotNewFrame=1;
+	}else{
+
+	  /*if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
 	  //have a full buffer waiting for processing.
 	  //printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
 	  camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
@@ -1661,7 +1682,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  camstr->mostRecentFilled[cam]=NULL;
 	  //printf("setting rtcReading to currentFilling and moreRecentFilled to NULL\n");
 	  gotNewFrame=1;
-	}else{
+	  }else{*/
 	  //wait for the next frame to start.
 	  //What should we do about errors here?
 	  //We don't care about errors here.  Since we're waiting for a new frame, it means that we've completed previous frames.  So, we can simple reset camErr to zero.
