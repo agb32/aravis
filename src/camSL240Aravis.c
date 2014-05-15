@@ -585,21 +585,27 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	}
       }
       camstr->currentFilling[cam]=buffer;
-      if(camstr->waiting[cam] && camstr->ncurrentlyReading[cam]==0){//is anyoen waiting?  Tell them about the new buffer.
+      if(camstr->waiting[cam] 
+#ifdef RESYNC
+	 && camstr->ncurrentlyReading[cam]==0
+#endif
+	 ){//is anyoen waiting?  Tell them about the new buffer.
 	camstr->waiting[cam]=0;
 	//printf("Broadcasting sof\n");
 	pthread_cond_broadcast(&camstr->camCond[cam]);
       }
       pthread_mutex_unlock(&camstr->camMutex[cam]);
     }
+#ifdef RESYNC
     if(camstr->ncurrentlyReading[cam]==0){//this is a valid frame (not one we're skipping):
+#endif
       camstr->readStarted[cam]=1;
 #ifdef RESYNC
       pthread_mutex_lock(&camstr->m);
       camstr->readHasStarted[cam]=1;
       pthread_mutex_unlock(&camstr->m);
-#endif
     }
+#endif
   }else if(type==ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE){
     stream=camstr->stream[cam];
     //Really, should check status of buffer->status, but I think there may be a bug.  So, here, instead check whether buffer->contiguous_data_received==buffer->size
@@ -615,7 +621,11 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	//printf("Not all frame received - setting mostRecentFilled to NULL\n");
 	camstr->mostRecentFilled[cam]=NULL;//just in case.
 	camstr->camErr[cam]=1;//previous frame didn't get finished.
-	if(camstr->waiting[cam] && camstr->ncurrentlyReading[cam]==0){
+	if(camstr->waiting[cam]
+#ifdef RESYNC
+	   && camstr->ncurrentlyReading[cam]==0
+#endif
+	   ){
 	  camstr->waiting[cam]=0;
 	  //todo("set an error");
 	  camstr->readStarted[cam]=0;
