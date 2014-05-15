@@ -784,7 +784,7 @@ void* workerSL240(void *thrstrv){
     bufindx++;//new frame
     if(bufindx>=NBUF)
       bufindx=0;
-    camstr->curframe[cam]=bufindx;
+    //camstr->curframe[cam]=bufindx;
       //set the pixels to zero (actually, possibly no need).
     //todo("Set pixels to zero?\n");
       //for(i=0; i<camstr->ncam; i++){
@@ -813,6 +813,7 @@ void* workerSL240(void *thrstrv){
       //printf("waitstartofframe %d (err %d), nRead %d\n",cam,err,nRead);
       if(err==0){
 	if(nRead==0){
+	  camstr->curframe[cam]=bufindx;
 #ifdef RESYNC
 	  pthread_mutex_lock(&camstr->m);
 	  camstr->readHasStarted[cam]=1;
