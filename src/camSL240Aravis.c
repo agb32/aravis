@@ -23,6 +23,7 @@ The library is written for a specific camera configuration - ie in multiple came
 This one handles SL240 and (some) gigE cameras simultaneously.
 
 */
+//#define RESYNC
 #ifndef NOSL240
 #include <nslapi.h>
 #else
@@ -55,6 +56,12 @@ typedef unsigned int uint32;
    If using multi cameras (ie multi SL240 cards or streams), would need to recode, so have multiple instances of this struct.
 */
 
+typedef struct{
+  ArvBuffer **buf;
+  struct timeval tstart;
+  struct timeval tend;
+} arvbuf;
+
 
 typedef struct{
   int ncam;//no of cameras
@@ -72,6 +79,10 @@ typedef struct{
 
   volatile int *pxlcnt;//number of pixels received for this frame and buffer
   //int pxlsRequested;//number of pixels requested by DMA for this frame
+#ifdef RESYNC
+  pthread_mutex_t m;
+  pthread_cond_t thrcond;
+#endif
   pthread_mutex_t *camMutex;
   pthread_cond_t *camCond;//sync between main RTC
   pthread_cond_t *camCond2;//sync between main RTC
@@ -99,7 +110,7 @@ typedef struct{
   void *thrStruct;//pointer to an array of threadStructs.
   int *npxlsArr;
   int *npxlsArrCum;
-  //int thrcnt;
+  int thrcnt;
   int *sl240Opened;//which cameras have been opened okay.
   int *err;
   int *threadPriority;
@@ -119,6 +130,11 @@ typedef struct{
   //int resync;//if set, will attempt to resynchronise cameras that have different frame numbers, by reading more frames from this one (number of extra frames is equal to the value of resync
   //int wpuCorrection;//whether to apply the correction if a camera is missing frames occasionally.
   int *readStarted;
+#ifdef RESYNC
+  int *readHasStarted;
+  int *ncurrentlyReading;//number of frames for aravis cam to ignore.
+  int doneSyncCheck;
+#endif
   int *gotsyncdv;//flag to whether syncdv has already been received while reading a truncated frame.
   int skipFrameAfterBad;//flag - whether to skip a frame after a bad frame.
   int *testLastPixel;//value for each camera - if nonzero, and one of the last this many pixels pixel are non-zero, flags as a bad frame.  Assumes that at least one subap will require all ccd pixels to be read (set in the config file - though this may increase latency, if not all pixels required).
@@ -180,9 +196,11 @@ void dofree(CamStruct *camstr){
     for(i=0; i<camstr->ncam; i++){
       pthread_cond_destroy(&camstr->camCond[i]);
       pthread_cond_destroy(&camstr->camCond2[i]);
-      pthread_mutex_destroy(&camstr->camMutex[i]);
     }
-    //pthread_mutex_destroy(&camstr->m);
+#ifdef RESYNC
+    pthread_mutex_destroy(&camstr->m);
+    pthread_cond_destroy(&camstr->thrcond);
+#endif
 #ifndef NOSL240
     if(camstr->sl240Opened!=NULL){
       if(camstr->handle!=NULL){
@@ -203,6 +221,10 @@ void dofree(CamStruct *camstr){
     safefree((void*)camstr->pxlcnt);
     safefree(camstr->ntoread);
     safefree(camstr->readStarted);
+#ifdef RESYNC
+    safefree(camstr->readHasStarted);
+    safefree(camstr->ncurrentlyReading);
+#endif
     safefree((void*)camstr->waiting);
     safefree((void*)camstr->newframe);
     safefree(camstr->camErr);
@@ -413,6 +435,55 @@ int waitStartOfFrame(CamStruct *camstr,int cam){
 #endif
   return rt;
 }
+#ifdef RESYNC
+int endFrameWait(CamStruct *camstr,int cam,int err){
+  int doExtra=0,i;
+  pthread_mutex_lock(&camstr->m);
+  if(err!=0){
+    if(camstr->skipFrameAfterBad>0){
+      if(camstr->gotsyncdv[cam]){
+	camstr->ntoread[cam]+=camstr->skipFrameAfterBad;
+      }
+    }
+  }
+  camstr->thrcnt++;
+  //if(camstr->thrcnt==1){//first thread to have completed - check that all the others have started.
+  //if(camstr->doneSyncCheck==0 && cam>=camstr->ncamSL240-1){//haven't yet done a sync check, and an aravis cam has just finished...
+  if(camstr->doneSyncCheck==0){// && cam<camstr->ncamSL240){//haven't yet done a sync check,  - only for the SL240s.
+    //Checking camera number is a bodge.  Found that the 2 ngs pairs would play each other off, so didn't want to use them.  Tried doing this sync check with the aravis, but then the LGS was out of sync.  So, now trying both...
+    camstr->doneSyncCheck=1;
+    for(i=0;i<camstr->ncam;i++){
+      if(camstr->readHasStarted[i]==0){//a camera hasn't started a read - so we'd better do an extra one to let it keep up.
+	printf("Read cam%d not yet started - prob frame missing\n",i);
+	doExtra=1;
+	//break;
+      }
+    }
+  }
+  if(doExtra){
+    for(i=0;i<camstr->ncam;i++){
+      if(camstr->readHasStarted[i]!=0)
+	camstr->ntoread[i]++;
+    }
+    //      for(i=camstr->ncamSL240;i<camstr->ncam;i++)
+    //	camstr->ntoread[i]++;
+  }
+  
+  //Block until all threads have completed...
+  if(camstr->thrcnt==camstr->ncam){//last thread to have completed this frame
+    camstr->thrcnt=0;
+    camstr->doneSyncCheck=0;
+    pthread_cond_broadcast(&camstr->thrcond);
+  }else{
+    //Threads should all wait here until all completed this frame...
+    pthread_cond_wait(&camstr->thrcond,&camstr->m);
+  }
+  camstr->readHasStarted[cam]=0;
+  pthread_mutex_unlock(&camstr->m);
+  return 0;
+}
+#endif
+
 
 
 void cameraCallbackTest(void *user_data, ArvStreamCallbackType type, ArvBuffer *buffer){
@@ -454,6 +525,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   if(type==ARV_STREAM_CALLBACK_TYPE_NEW_DATA){//this one first, since called most often.
     if(buffer!=NULL){
       if(buffer->contiguous_data_received>=buffer->last_data_accessed+camstr->blocksize[cam] || (buffer->contiguous_data_received==buffer->size && camstr->readStarted[cam]==1)){//a new block filled - or have finished the frame
+	int frameFinished=0;
 	//notify...
 	pthread_mutex_lock(&camstr->camMutex[cam]);
 	while(buffer->contiguous_data_received>=buffer->last_data_accessed+camstr->blocksize[cam]){
@@ -462,8 +534,11 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	//If this was the last bit of data...:
 	if(buffer->contiguous_data_received==buffer->size && camstr->readStarted[cam]==1){//received it all...  for some reason, seem to get 2 calls for this one sometimes?
 	//END OF FRAME...
-	  if(camstr->recordTimestamp)
+	  frameFinished=1;
+	  if(camstr->recordTimestamp){
 	    gettimeofday(&camstr->timestamp[cam],NULL);
+	    //printf("Cam %d end time %d\n",cam,(int)camstr->timestamp[cam].tv_usec);
+	  }
 	  camstr->readStarted[cam]=0;
 	  if(camstr->mostRecentFilled[cam]!=NULL){
 	    printf("Skipping [%u %s]: darc not keeping up/diff Hz/lost data\n",camstr->mostRecentFilled[cam]->frame_id,camstr->camNameList[cam]);
@@ -471,7 +546,9 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	    //printf("ok - not skipping\n");
 	  }
 	  if(camstr->currentFilling[cam]!=NULL){//not currently being read
-	    camstr->mostRecentFilled[cam]=buffer;
+	    //camstr->mostRecentFilled[cam]=buffer;
+	    printf("Pipeline read of cam %d not yet started\n",cam);
+	    camstr->mostRecentFilled[cam]=NULL;
 	    camstr->currentFilling[cam]=NULL;
 	    //printf("setting mostRecentFilled to frame %u\n",buffer->frame_id);
 	  }else{
@@ -486,6 +563,12 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	  pthread_cond_broadcast(&camstr->camCond[cam]);
 	}
 	pthread_mutex_unlock(&camstr->camMutex[cam]);
+
+	if(frameFinished){//wait for other threads.
+#ifdef RESYNC
+	  endFrameWait(camstr,cam,0);
+#endif
+	}
       }else if(buffer->contiguous_data_received<buffer->last_data_accessed){
 	printf("Resetting last_data_accessed (probably shouldn't see this)\n");
 	buffer->last_data_accessed=0;
@@ -500,6 +583,17 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
     }else{
       buffer->last_data_accessed=0;
       pthread_mutex_lock(&camstr->camMutex[cam]);
+#ifdef RESYNC
+      if(camstr->ncurrentlyReading[cam]<=0){
+	pthread_mutex_lock(&camstr->m);
+	camstr->ncurrentlyReading[cam]=camstr->ntoread[cam];
+	camstr->ntoread[cam]=1;
+	pthread_mutex_unlock(&camstr->m);
+      }
+      if(camstr->ncurrentlyReading[cam]>0)
+	camstr->ncurrentlyReading[cam]--;
+#endif
+
       if(camstr->readStarted[cam]==1){
 	//todo("Set error somehow - previous frame didn't get finished");
 	//but only if someone has started reading the buffer...
@@ -509,15 +603,31 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	  printf("Error case - setting mostRecentFilled to NULL\n");
 	}
       }
+      //gettimeofday(&t1,NULL);
+      //printf("Cam %d start time %d\n",cam,(int)t1.tv_usec);
+
       camstr->currentFilling[cam]=buffer;
-      if(camstr->waiting[cam]){//is anyoen waiting?  Tell them about the new buffer.
+      if(camstr->waiting[cam] 
+#ifdef RESYNC
+	 && camstr->ncurrentlyReading[cam]==0
+#endif
+	 ){//is anyoen waiting?  Tell them about the new buffer.
 	camstr->waiting[cam]=0;
 	//printf("Broadcasting sof\n");
 	pthread_cond_broadcast(&camstr->camCond[cam]);
       }
       pthread_mutex_unlock(&camstr->camMutex[cam]);
     }
-    camstr->readStarted[cam]=1;
+#ifdef RESYNC
+    if(camstr->ncurrentlyReading[cam]==0){//this is a valid frame (not one we're skipping):
+#endif
+      camstr->readStarted[cam]=1;
+#ifdef RESYNC
+      pthread_mutex_lock(&camstr->m);
+      camstr->readHasStarted[cam]=1;
+      pthread_mutex_unlock(&camstr->m);
+    }
+#endif
   }else if(type==ARV_STREAM_CALLBACK_TYPE_BUFFER_DONE){
     stream=camstr->stream[cam];
     //Really, should check status of buffer->status, but I think there may be a bug.  So, here, instead check whether buffer->contiguous_data_received==buffer->size
@@ -533,7 +643,11 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	//printf("Not all frame received - setting mostRecentFilled to NULL\n");
 	camstr->mostRecentFilled[cam]=NULL;//just in case.
 	camstr->camErr[cam]=1;//previous frame didn't get finished.
-	if(camstr->waiting[cam]){
+	if(camstr->waiting[cam]
+#ifdef RESYNC
+	   && camstr->ncurrentlyReading[cam]==0
+#endif
+	   ){
 	  camstr->waiting[cam]=0;
 	  //todo("set an error");
 	  camstr->readStarted[cam]=0;
@@ -557,6 +671,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   }else if(type==ARV_STREAM_CALLBACK_TYPE_INIT){//this would be a good place to change thread priority and affinity.  Called about once.
     printf("Initialised stream for %s, thread %ld, setting affinity/priority\n",camstr->camNameList[cam],pthread_self());
     camSetThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
+    camstr->ntoread[cam]=1;
   }else{//ignore the other callbacks...
   }
 }
@@ -671,7 +786,13 @@ void* workerSL240(void *thrstrv){
   printf("Calling setThreadAffinityAndPriority\n");
   camSetThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
   //pthread_mutex_lock(&camstr->camMutex[cam]);
+#ifdef RESYNC
+  pthread_mutex_lock(&camstr->m);
+#endif
   camstr->ntoread[cam]=1;
+#ifdef RESYNC
+  pthread_mutex_unlock(&camstr->m);
+#endif
   //if(camstr->thrcnt==0){//first frame...
   camstr->transferframe[cam]=0;//rtcReading
   //camstr->last[cam]=-1;
@@ -685,7 +806,7 @@ void* workerSL240(void *thrstrv){
     bufindx++;//new frame
     if(bufindx>=NBUF)
       bufindx=0;
-    camstr->curframe[cam]=bufindx;
+    //camstr->curframe[cam]=bufindx;
       //set the pixels to zero (actually, possibly no need).
     //todo("Set pixels to zero?\n");
       //for(i=0; i<camstr->ncam; i++){
@@ -695,21 +816,36 @@ void* workerSL240(void *thrstrv){
     //camstr->thrcnt++;
     //camstr->pxlsRequested=0;
     err=0;
+#ifdef RESYNC
+    pthread_mutex_lock(&camstr->m);
+#endif
     nRead=camstr->ntoread[cam];
     camstr->ntoread[cam]=1;
+#ifdef RESYNC
+    pthread_mutex_unlock(&camstr->m);
+#endif
     if(nRead!=1)
       printf("nRead %d for cam %d\n",nRead,cam);
-    //camstr->readStarted[cam]=0;
     //pthread_mutex_unlock(&camstr->camMutex[cam]);
     while(err==0 && nRead>0 && camstr->open!=0){
       nRead--;
       pxlcnt=0;
       //Read the start of frame...
+      //gettimeofday(&t1,NULL);
+      //printf("Cam %d wait start time %d\n",cam,(int)t1.tv_usec);
       err=waitStartOfFrame(camstr,cam);
-      //printf("waitstartofframe %d (err %d)\n",cam,err);
+      //printf("waitstartofframe %d (err %d), nRead %d\n",cam,err,nRead);
       if(err==0){
-	//if(nRead==0)
-	//camstr->readStarted[cam]=1;
+	if(nRead==0){
+	  //gettimeofday(&t1,NULL);
+	  //printf("Cam %d start time %d\n",cam,(int)t1.tv_usec);
+	  camstr->curframe[cam]=bufindx;
+#ifdef RESYNC
+	  pthread_mutex_lock(&camstr->m);
+	  camstr->readHasStarted[cam]=1;
+	  pthread_mutex_unlock(&camstr->m);
+#endif
+	}
 	//now loop until we've read all the pixels.
 	((int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=0;//set frame counter to zero.
 	while(pxlcnt<camstr->npxlsArr[cam] && err==0){
@@ -733,12 +869,18 @@ void* workerSL240(void *thrstrv){
 	      if(camstr->latestframe[cam]!=-1)
 		printf("Cam %d skipping: darc not keeping up/diff Hz/lost data\n",cam);
 	      if(camstr->curframe[cam]!=-1 && err==0){//not currently being read
-		camstr->latestframe[cam]=camstr->curframe[cam];
+		printf("Pipeline read of cam %d not yet started\n",cam);
+		//camstr->latestframe[cam]=camstr->curframe[cam];
+		camstr->latestframe[cam]=-1;
 	      }else{
 		camstr->latestframe[cam]=-1;//should be anyway.
 	      }
 	      camstr->curframe[cam]=-1;
-
+	      if(camstr->recordTimestamp){//an option to put camera frame number as time in us of last pixel arriving... useful for synchronising different cameras so that last pixel arrives at same time.
+		gettimeofday(&t1,NULL);
+		((unsigned int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
+		//printf("Cam %d end time %d\n",cam,(int)t1.tv_usec);
+	      }
 	    }
 	    if(camstr->waiting[cam]==1){//the RTC is waiting for the newest pixels, so wake it up.
 	      camstr->waiting[cam]=0;
@@ -746,10 +888,6 @@ void* workerSL240(void *thrstrv){
 	    }
 	    pthread_mutex_unlock(&camstr->camMutex[cam]);
 	  }
-	}
-	if(camstr->recordTimestamp){//an option to put camera frame number as time in us of last pixel arriving... useful for synchronising different cameras so that last pixel arrives at same time.
-	  gettimeofday(&t1,NULL);
-	  ((unsigned int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
 	}
       }else{//error getting start of frame
 	((int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))]))[0]=0;//set frame counter to zero.
@@ -777,13 +915,19 @@ void* workerSL240(void *thrstrv){
 	camstr->latestframe[cam]=-1;//should be anyway.
       }
       }else{*/
-    if(err!=0){
-      if(camstr->skipFrameAfterBad>0){
-	if(camstr->gotsyncdv[cam]){
-	  camstr->ntoread[cam]+=camstr->skipFrameAfterBad;
-	}
+#ifdef RESYNC
+    endFrameWait(camstr,cam,err);
+#else
+  if(err!=0){
+    if(camstr->skipFrameAfterBad>0){
+      if(camstr->gotsyncdv[cam]){
+	camstr->ntoread[cam]+=camstr->skipFrameAfterBad;
       }
     }
+  }
+#endif
+    
+
   }
   //pthread_mutex_unlock(&camstr->camMutex[cam]);
   return 0;
@@ -871,6 +1015,10 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->pxlcnt=calloc(ncam*NBUF,sizeof(int)));
   TEST(camstr->ntoread=calloc(ncam,sizeof(int)));
   TEST(camstr->readStarted=calloc(ncam,sizeof(int)));
+#ifdef RESYNC
+  TEST(camstr->readHasStarted=calloc(ncam,sizeof(int)));
+  TEST(camstr->ncurrentlyReading=calloc(ncam,sizeof(int)));
+#endif
   TEST(camstr->waiting=calloc(ncam,sizeof(int)));
   TEST(camstr->newframe=calloc(ncam,sizeof(int)));
   TEST(camstr->pxlsTransferred=calloc(ncam,sizeof(int)));
@@ -1038,7 +1186,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   }
   printf("got args\n");
   for(i=0; i<ncam; i++){
-    printf("%d %d %d\n",camstr->blocksize[i],camstr->timeout[i],camstr->fibrePort[i]);
+    printf("%d %d %d %d\n",camstr->blocksize[i],camstr->timeout[i],camstr->fibrePort[i],camstr->testLastPixel[i]);
   }
   /*
   maxbpp=0;
@@ -1169,6 +1317,20 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       return 1;
     }
   }
+#ifdef RESYNC
+  if(pthread_mutex_init(&camstr->m,NULL)!=0){
+    printf("Error initialising mutex variable\n");
+    dofree(camstr);
+    *camHandle=NULL;
+    return 1;
+  }
+  if(pthread_cond_init(&camstr->thrcond,NULL)!=0){
+    printf("Error initialising condition variable3\n");
+    dofree(camstr);
+    *camHandle=NULL;
+    return 1;
+  }
+#endif
   if((camstr->DMAbuf=malloc(ncam*sizeof(int*)))==NULL){
     printf("Couldn't allocate DMA buffer\n");
     dofree(camstr);
@@ -1615,7 +1777,22 @@ int camWaitPixels(int n,int cam,void *camHandle){
     gotNewFrame=0;
     if(cam<camstr->ncamSL240){//this is waiting for sl240 pixels...
       while(gotNewFrame==0){
-	if(camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
+	if(camstr->curframe[cam]!=-1 && camstr->curframe[cam]!=camstr->transferframe[cam]){
+	  //have a new buffer currently reading out
+	  camstr->transferframe[cam]=camstr->curframe[cam];
+	  camstr->curframe[cam]=-1;
+	  if(camstr->latestframe[cam]!=-1)
+	    printf("Skipping frame for cam %d\n",cam);
+	  camstr->latestframe[cam]=-1;
+	  gotNewFrame=1;
+	}else if(camstr->curframe[cam]==-1 && camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
+	  //have a full buffer waiting for processing.
+	  camstr->transferframe[cam]=camstr->latestframe[cam];
+	  camstr->latestframe[cam]=-1;
+	  gotNewFrame=1;
+	}else{//wait for next frame to start.
+
+	  /*	if(camstr->latestframe[cam]!=-1 && camstr->latestframe[cam]!=camstr->transferframe[cam]){
 	  //have a full buffer waiting for processing.
 	  camstr->transferframe[cam]=camstr->latestframe[cam];
 	  camstr->latestframe[cam]=-1;
@@ -1625,8 +1802,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  camstr->transferframe[cam]=camstr->curframe[cam];
 	  camstr->curframe[cam]=-1;
 	  camstr->latestframe[cam]=-1;
-	  gotNewFrame=1;
-	}else{//wait for next frame to start.
+	  gotNewFrame=1;*/
 	  //what should we do about errors here?  
 	  //We don't care about errors here.  Since we're waiting for a new frame, it means we've completed previous frames.  So, can simply reset camErr to zero.
 	  camstr->waiting[cam]=1;
@@ -1640,7 +1816,22 @@ int camWaitPixels(int n,int cam,void *camHandle){
       pthread_cond_broadcast(&camstr->camCond2[cam]);
     }else{//wait for aravis pixels
       while(gotNewFrame==0){
-	if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+	if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
+	  //havea new buffer currently reading out.
+	  camstr->rtcReading[cam]=camstr->currentFilling[cam];
+	  camstr->currentFilling[cam]=NULL;
+	  if(camstr->mostRecentFilled[cam]!=NULL)
+	    printf("Skilling frame for cam %d\n",cam);
+	  camstr->mostRecentFilled[cam]=NULL;
+	  gotNewFrame=1;
+	}else if(camstr->currentFilling[cam]==NULL && camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+	  //have a full buffer waiting for processing/
+	  camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
+	  camstr->mostRecentFilled[cam]=NULL;
+	  gotNewFrame=1;
+	}else{
+
+	  /*if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
 	  //have a full buffer waiting for processing.
 	  //printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
 	  camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
@@ -1653,7 +1844,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  camstr->mostRecentFilled[cam]=NULL;
 	  //printf("setting rtcReading to currentFilling and moreRecentFilled to NULL\n");
 	  gotNewFrame=1;
-	}else{
+	  }else{*/
 	  //wait for the next frame to start.
 	  //What should we do about errors here?
 	  //We don't care about errors here.  Since we're waiting for a new frame, it means that we've completed previous frames.  So, we can simple reset camErr to zero.
