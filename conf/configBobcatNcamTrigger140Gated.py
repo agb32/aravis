@@ -118,7 +118,7 @@ pxlCnt[numpy.nonzero(subapFlag)[0][-1]]=npxlx[0]*npxly[0]
   //The names as a string.
   //recordTimestamp
 """
-camList=["Imperx, inc.-110324","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110325"][:ncam]
+camList=["Imperx, inc.-110240","Imperx, inc.-110324","Imperx, inc.-110323","Imperx, inc.-110325"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
