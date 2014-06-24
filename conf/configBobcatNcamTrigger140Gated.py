@@ -138,7 +138,7 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="TriggerMode=Off;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=20000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Timed;TriggerNumPulses=10;TriggerMode=On;"#;"
+camCommand="TriggerMode=Off;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=20000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=10;TriggerMode=On;"#;"
 #Note - turn off trigger mode to set ProgFrameTimeEnable to false, then turn it back on...
 #TriggerType can be Fast - but doesn't seem to work well.
 #TriggerMode can be On/Off
