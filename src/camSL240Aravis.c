@@ -1968,7 +1968,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  for(i=camstr->pxlsTransferred[cam];i<n;i++)
 	    ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+i]=(unsigned short)(((unsigned char*)(camstr->rtcReading[cam]->data))[i]);
 	}else if(camstr->bpp[cam]<=16){//copy
-	  memcpy(&camstr->imgdata[2*(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[2*camstr->pxlsTransferred[cam]]),2*(n-camstr->pxlsTransferred[cam]));
+	  memcpy(&camstr->imgdata[(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[2*camstr->pxlsTransferred[cam]]),2*(n-camstr->pxlsTransferred[cam]));
 	}else{
 	  printf("Can't yet handle >16 bits per pixel in camAravis - please recode\n");
 	}
