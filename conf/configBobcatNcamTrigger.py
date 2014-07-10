@@ -117,7 +117,7 @@ for k in range(ncam):
   //The names as a string.
   //recordTimestamp
 """
-camList=["Imperx, inc.-110324","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110325"][:ncam]
+camList=["Imperx, inc.-110526","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110325"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
@@ -137,7 +137,7 @@ cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="GevSCPSPacketSize=7000;ProgFrameTimeAbs=20000;TriggerMode=On;TriggerType=Standard;ExposureTimeRaw=100;ProgFrameTimeEnable=false;"
+camCommand="TriggerMode=Off;PixelFormat=Mono8;PixelSize=Bpp8;BinningHorizontal=x1;BinningVertical=x1;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=20000;TriggerMode=On;TriggerType=Standard;ExposureTimeRaw=100;"
 #TriggerType can be Fast.
 #TriggerMode can be On
 
