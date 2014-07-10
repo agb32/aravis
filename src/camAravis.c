@@ -251,7 +251,8 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
 	    //printf("ok - not skipping\n");
 	  }
 	  if(camstr->currentFilling[cam]!=NULL){//not currently being read
-	    camstr->mostRecentFilled[cam]=buffer;
+	    printf("Pipeline read of cam %d not yet started - dropping frame\n",cam);
+	    camstr->mostRecentFilled[cam]=NULL;//buffer;
 	    camstr->currentFilling[cam]=NULL;
 	    //printf("setting mostRecentFilled to frame %u\n",buffer->frame_id);
 	  }else{
@@ -337,6 +338,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
   }else if(type==ARV_STREAM_CALLBACK_TYPE_INIT){//this would be a good place to change thread priority and affinity.  Called about once.
     printf("Initialised stream for %s, thread %ld, setting affinity/priority\n",camstr->camNameList[cam],pthread_self());
     camSetThreadAffinityAndPriority(&camstr->threadAffinity[cam*camstr->threadAffinElSize],camstr->threadPriority[cam],camstr->threadAffinElSize);
+    //    camstr->ntoread[cam]=1;
   }else{//ignore the other callbacks...
   }
 }
@@ -487,19 +489,6 @@ int startCamera(CamStruct *camstr,int cam){
       }
       //data->bufArr=bufArr;
       arv_camera_set_acquisition_mode (camera, ARV_ACQUISITION_MODE_CONTINUOUS);
-      
-      //if (arv_option_frequency > 0.0)
-      //arv_camera_set_frame_rate (camera, arv_option_frequency);
-      
-      //if (arv_option_trigger != NULL)
-      //arv_camera_set_trigger (camera, arv_option_trigger);
-      
-      //if (arv_option_software_trigger > 0.0) {
-      //arv_camera_set_trigger (camera, "Software");
-      //software_trigger_source = g_timeout_add ((double) (0.5 + 1000.0 /arv_option_software_trigger), emit_software_trigger, camera);
-      //camInfo->software_trigger_source=software_trigger_source;
-      //}
-      
       arv_camera_start_acquisition (camera);//starts a new thread...
     }else{
       printf ("Can't create stream thread (check if the device is not already used)\n");
@@ -1116,16 +1105,25 @@ int camWaitPixels(int n,int cam,void *camHandle){
       if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
 	//have a full buffer waiting for processing.
 	//printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
-	camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
+	camstr->rtcReading[cam]=camstr->currentFilling[cam];//mostRecentFilled[cam];
+	camstr->currentFilling[cam]=NULL;
+	if(camstr->mostRecentFilled[cam]!=NULL)
+	  printf("Skipping frame for cam %d\n",cam);
 	camstr->mostRecentFilled[cam]=NULL;
 	gotNewFrame=1;
-      }else if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
+      }else if(camstr->currentFilling[cam]==NULL && camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+	  //have a full buffer waiting for processing/
+	  camstr->rtcReading[cam]=camstr->mostRecentFilled[cam];
+	  camstr->mostRecentFilled[cam]=NULL;
+	  gotNewFrame=1;
+      
+	  /*      }else if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
 	//have a new buffer currently reading out
 	camstr->rtcReading[cam]=camstr->currentFilling[cam];
 	camstr->currentFilling[cam]=NULL;
 	camstr->mostRecentFilled[cam]=NULL;
 	//printf("setting rtcReading to currentFilling and moreRecentFilled to NULL\n");
-	gotNewFrame=1;
+	gotNewFrame=1;*/
       }else{
 	//wait for the next frame to start.
 	//What should we do about errors here?
