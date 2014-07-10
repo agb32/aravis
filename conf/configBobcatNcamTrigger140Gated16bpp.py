@@ -141,7 +141,7 @@ rmx=numpy.random.random((nacts,ncents)).astype("f")
 #camCommand="TriggerMode=Off;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=2000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=10;TriggerMode=On;"
 
 #This one works well - gets a ~500Hz rate with a 10kHz rate if numPulses==10, and 133Hz if numPulses=66.  And 151Hz if numPulses=58.
-camCommand="TriggerMode=Off;PixelFormat=Mono12;PixelSize=Bpp12;BinningHorizontal=x1;BinningVertical=x1;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=2000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=57;CenterScanMode=true;TriggerMode=On;"
+camCommand="TriggerMode=Off;PixelFormat=Mono12;PixelSize=Bpp12;BinningHorizontal=x1;BinningVertical=x1;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=10000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=57;CenterScanMode=true;TriggerMode=On;"
 
 
 #Note - turn off trigger mode to set ProgFrameTimeEnable to false, then turn it back on...
