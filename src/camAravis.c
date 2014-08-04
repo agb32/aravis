@@ -1102,7 +1102,8 @@ int camWaitPixels(int n,int cam,void *camHandle){
     camstr->pxlsTransferred[cam]=0;
     gotNewFrame=0;
     while(gotNewFrame==0){
-      if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+      //if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+      if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
 	//have a full buffer waiting for processing.
 	//printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
 	camstr->rtcReading[cam]=camstr->currentFilling[cam];//mostRecentFilled[cam];
