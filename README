@@ -69,12 +69,17 @@ net.core.wmem_max = 16777216
 net.ipv4.tcp_rmem = 4096 87380 16777216
 net.ipv4.tcp_wmem = 4096 65536 16777216
 net.core.netdev_max_backlog = 250000
+
+Maybe also:
+net.core.rmem_default =	4194304
+
+
 Then use:
 sysctl -p /etc/sysctl.conf
 
 Possible options (with defaults for gpuserver shown):
 net.ipv4.udp_mem = 579720	772963	1159440
-net.ipv4.udp_rmem_min = 4096
+net.ipv4.udp_rmem_min = 4096   # Maybe set to 16384?  Or 65536
 net.ipv4.udp_wmem_min = 4096
 
 And:
@@ -85,6 +90,11 @@ Other options:
 IRQ binding:
 http://fasterdata.es.net/host-tuning/interrupt-binding/
 
+disable reverse path filtering:
+Set net.ipv4.conf.default.rp_filter=2  or 0?
+eg :
+echo 2 > /proc/sys/net/ipv4/conf/default/rp_filter  #(or 0?)
+echo 2 > /proc/sys/net/ipv4/conf/all/rp_filter      #(or 0?)
 
 dhcpd /etc/dhcp*/*.conf
 /etc/defualt/isc-dhcp-server

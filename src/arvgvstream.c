@@ -628,7 +628,7 @@ arv_gv_stream_thread (void *data)
 
 		n_events = g_poll (&poll_fd, 1, timeout_ms);
 
-		g_get_current_time (&current_time);
+		g_get_current_time (&current_time);//If we're not requesting packet resents, then this can be ignored.
 		time_us = current_time.tv_sec * 1000000 + current_time.tv_usec;
 
 		if (n_events > 0) {
