@@ -85,6 +85,7 @@ Other options:
 IRQ binding:
 http://fasterdata.es.net/host-tuning/interrupt-binding/
 
+Try: echo 0 > /proc/sys/net/ipv4/conf/eth2/rp_filter  (or ethX)
 
 dhcpd /etc/dhcp*/*.conf
 /etc/defualt/isc-dhcp-server
