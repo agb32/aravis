@@ -84,6 +84,7 @@ typedef struct{
   int *frameReady;
   int *offsetX;
   int *offsetY;
+  int *byteswapInts;
   struct timeval *timestamp;
   int recordTimestamp;//option to use timestamp of last pixel arriving rather than frame number.
   int auto_socket_buffer;
@@ -148,6 +149,7 @@ void dofree(CamStruct *camstr){
     safefree(camstr->timestamp);
     safefree(camstr->offsetX);
     safefree(camstr->offsetY);
+    safefree(camstr->byteswapInts);
     safefree(camstr->mostRecentFilled);
     safefree(camstr->currentFilling);
     safefree(camstr->rtcReading);
@@ -418,6 +420,19 @@ int stopCamera(CamStruct *camstr,int cam){
   }
   return 0;
 }
+int byteswap(int a){
+  int len=4;
+  char *p=(char*)&a;
+  int i;
+  char tmp;
+  for(i = 0; i < len/2; i++) {
+    tmp = p[len-i-1];
+    p[len-i-1] = p[i];
+    p[i] = tmp;
+  }
+  return a;
+}
+
 int startCamera(CamStruct *camstr,int cam){
   ArvCamera *camera;
   ArvStream *stream;
@@ -439,10 +454,22 @@ int startCamera(CamStruct *camstr,int cam){
     gint dx, dy;
     double exposure;
     int gain;
+    int ox,oy,nx,ny;
     //guint software_trigger_source = 0;
     ArvBuffer **bufArr;
     bufArr=&camstr->bufArrList[cam*NBUF];
-    arv_camera_set_region (camera, camstr->offsetX[cam],camstr->offsetY[cam], camstr->pxlx[cam], camstr->pxly[cam]);
+    if(camstr->byteswapInts[cam]){
+      ox=byteswap(camstr->offsetX[cam]);
+      oy=byteswap(camstr->offsetY[cam]);
+      nx=byteswap(camstr->pxlx[cam]);
+      ny=byteswap(camstr->pxly[cam]);
+    }else{
+      ox=camstr->offsetX[cam];
+      oy=camstr->offsetY[cam];
+      nx=camstr->pxlx[cam];
+      ny=camstr->pxly[cam];
+    }
+    arv_camera_set_region (camera, ox,oy,nx,ny);
     //arv_camera_set_binning (camera, arv_option_horizontal_binning, arv_option_vertical_binning);//no binning at the moment
     //arv_camera_set_exposure_time (camera, arv_option_exposure_time_us);
     //arv_camera_set_gain (camera, arv_option_gain);  
@@ -616,6 +643,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->frameReady=calloc(ncam,sizeof(int)));
   TEST(camstr->offsetX=calloc(ncam,sizeof(int)));
   TEST(camstr->offsetY=calloc(ncam,sizeof(int)));
+  TEST(camstr->byteswapInts=calloc(ncam,sizeof(int)));
   TEST(camstr->timestamp=calloc(ncam,sizeof(struct timeval)));
   TEST(camstr->mostRecentFilled=calloc(ncam,sizeof(ArvBuffer*)));
   TEST(camstr->currentFilling=calloc(ncam,sizeof(ArvBuffer*)));
@@ -672,19 +700,31 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     for(i=0;i<ncam;i++)
       camstr->offsetY[i]=args[3*ncam+i];
   }
+
   if(n>=5*ncam){
+    for(i=0;i<ncam;i++){
+      camstr->byteswapInts[i]=args[4*ncam+i];
+      if(camstr->byteswapInts[i]>1 || camstr->byteswapInts[i]<0){
+	printf("Error - config file out of date for camAravis - byteswapInts parameter has been added...\n");
+	dofree(camstr);
+	*camHandle=NULL;
+	return 1;
+      }
+    }
+  }
+  if(n>=6*ncam){
     for(i=0;i<ncam;i++)
-      camstr->threadPriority[i]=args[4*ncam+i];
+      camstr->threadPriority[i]=args[5*ncam+i];
   }
   //Note:  threadAffinElSize==args[5*ncam] (accessed previously)
-  if(n>(5+camstr->threadAffinElSize)*ncam){
+  if(n>(6+camstr->threadAffinElSize)*ncam){
     for(i=0;i<ncam;i++)
       for(j=0;j<camstr->threadAffinElSize;j++)
-	camstr->threadAffinity[i*camstr->threadAffinElSize+j]=(unsigned int)(args[5*ncam+1+i*camstr->threadAffinElSize+j]);
+	camstr->threadAffinity[i*camstr->threadAffinElSize+j]=(unsigned int)(args[6*ncam+1+i*camstr->threadAffinElSize+j]);
   }
-  if(n>(5+camstr->threadAffinElSize)*ncam+2){
-    camIDLen=args[(5+camstr->threadAffinElSize)*ncam+1];//number of bytes to describe camera names.
-    camstr->nameList=strndup((char*)&args[(5+camstr->threadAffinElSize)*ncam+2],camIDLen);
+  if(n>(6+camstr->threadAffinElSize)*ncam+2){
+    camIDLen=args[(6+camstr->threadAffinElSize)*ncam+1];//number of bytes to describe camera names.
+    camstr->nameList=strndup((char*)&args[(6+camstr->threadAffinElSize)*ncam+2],camIDLen);
     char *namePtr=camstr->nameList;
     char *next;
     i=0;
@@ -712,7 +752,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     else
       printf("WARNING - no cameras defined, not sure what will happen...\n");
   }
-  nn=(5+camstr->threadAffinElSize)*ncam+2+((camIDLen+sizeof(int)-1)/sizeof(int));//number of args used so far...
+  nn=(6+camstr->threadAffinElSize)*ncam+2+((camIDLen+sizeof(int)-1)/sizeof(int));//number of args used so far...
   if(n>nn){
     camstr->recordTimestamp=args[nn];
   }else{
