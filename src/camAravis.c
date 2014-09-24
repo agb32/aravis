@@ -1399,7 +1399,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 		tb=1-amp/4;//top to bottom amp (0,1,2,3)?
 		x=(tb*2-1)*(((1-2*rl)*(pxl%66-6)+rl*59)+60*amp)+(1-tb)*(60*8-1);
 		y=(1-tb)*239+(2*tb-1)*(pxl/66);
-		j=y*240+x;
+		j=y*264+x;
 		((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
 	      }
 	    }
