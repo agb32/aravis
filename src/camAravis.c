@@ -1014,13 +1014,10 @@ int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
 	if(name[0]=='R' && name[1]=='['){
 	  guint32 value;
 	  guint32 address;
-	  int addr;
-	  addr=atoi(&name[2]);
-	  address=*((unsigned int*)&addr);
+	  address=(unsigned int)strtol(&name[2],NULL,0);
 	  printf("Address %#x\n",address);
 	  if(val!=NULL){
-	    addr=atoi(val);
-	    value=*((unsigned int*)&addr);
+	    value=(unsigned int)strtol(val,NULL,0);
 	    arv_device_write_register(device,address,value, NULL);
 	  }
 	  arv_device_read_register(device,address,&value,NULL);
