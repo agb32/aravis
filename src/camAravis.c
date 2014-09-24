@@ -1017,13 +1017,14 @@ int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
 	  int addr;
 	  addr=atoi(&name[2]);
 	  address=*((unsigned int*)&addr);
+	  printf("Address %#x\n",address);
 	  if(val!=NULL){
 	    addr=atoi(val);
 	    value=*((unsigned int*)&addr);
 	    arv_device_write_register(device,address,value, NULL);
 	  }
 	  arv_device_read_register(device,address,&value,NULL);
-	  printf("R[0x%08x] = 0x%08x\n",address,value);
+	  printf("Got: R[0x%08x] = 0x%08x\n",address,value);
 	}else{
 	  printf("Feature '%s' not found\n",name);
 	}
