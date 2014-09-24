@@ -1389,8 +1389,23 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	      ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
 	    }
 	    
-	  }
-
+	  }else if(camstr->reorder[cam]==3){//specific reorder for OCAM2 without keeping the overscan regions.
+	    //Should be 63888 pixels coming in (121*1056/2 -> 264x242).  Each quadrant is 66x121 pixels.  Then here, convert to 240x240.  Remove first 6 pixels of each row of each quad, and last row.
+	    for(i=camstr->pxlsTransferred[cam]; i<n; i++){
+	      pxl=i/8;//the pixel within a given quadrant
+	      if(pxl%66>5 && pxl<66*120){//not an overscan pixel
+		amp=i%8;//the amplifier (quadrant) in question    
+		rl=1-i%2;//right to left
+		tb=1-amp/4;//top to bottom amp (0,1,2,3)?
+		x=(tb*2-1)*(((1-2*rl)*(pxl%66-6)+rl*59)+60*amp)+(1-tb)*(60*8-1);
+		y=(1-tb)*239+(2*tb-1)*(pxl/66);
+		j=y*240+x;
+		((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
+	      }
+	    }
+	    
+	  
+}
 	}
       }else{
 	printf("Can't yet handle >16 bits per pixel in camAravis - please recode\n");
