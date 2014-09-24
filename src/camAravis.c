@@ -1010,8 +1010,23 @@ int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
       }else
 	printf("Sending: %s\n",name);
       feature=arv_device_get_feature (device, name);
-      if (!ARV_IS_GC_NODE (feature)){
-	printf("todo: node setting %d %s\n",i,name);
+      if (!ARV_IS_GC_FEATURE_NODE (feature)){
+	if(name[0]=='R' && name[1]=='['){
+	  guint32 value;
+	  guint32 address;
+	  int addr;
+	  addr=atoi(&name[2]);
+	  address=*((unsigned int*)&addr);
+	  if(val!=NULL){
+	    addr=atoi(val);
+	    value=*((unsigned int*)&addr);
+	    arv_device_write_register(device,address,value, NULL);
+	  }
+	  arv_device_read_register(device,address,&value,NULL);
+	  printf("R[0x%08x] = 0x%08x\n",address,value);
+	}else{
+	  printf("Feature '%s' not found\n",name);
+	}
       }else{
 	if (ARV_IS_GC_COMMAND (feature)) {
 	  arv_gc_command_execute (ARV_GC_COMMAND (feature), NULL);
