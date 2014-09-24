@@ -1266,7 +1266,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   QSORT(char*,camParamName,ncam-ncamSL240+2+ngot,islt);
 #undef islt
 
-  //now capture the order (and we know the camReorders will come after aravis*
+  //now capture the order (and we know the camReorders will come after aravis*)
   for(i=0; i<ngot; i++){
     j=atoi(&camParamName[i+ncam-ncamSL240+2][10]);
     for(k=0;k<ncam;k++){
@@ -1922,7 +1922,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
 	  //Note - todo - need to create reorderbuf and use camNewParam()...
 	  //Look for a parameter called "camReorder%d" where %d is reorder[cam]
 	    for(i=camstr->pxlsTransferred[cam]; i<n; i++){
-	      camstr->imgdata[camstr->reorderBuf[cam][camstr->npxlsArrCum[cam]+i]]=(unsigned short)(camstr->DMAbuf[cam][(camstr->transferframe[cam])*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))+HDRSIZE/sizeof(int)+i]);
+	      camstr->imgdata[camstr->npxlsArrCum[cam]+camstr->reorderBuf[cam][i]]=(unsigned short)(camstr->DMAbuf[cam][(camstr->transferframe[cam])*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))+HDRSIZE/sizeof(int)+i]);
 	    }
 	  }else if(camstr->reorder[cam]==1){//this is a standard reorder for scimeasure CCID18 (CANARY LGS) specific reordering
 	    for(i=camstr->pxlsTransferred[cam]; i<n; i++){
