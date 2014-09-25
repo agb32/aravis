@@ -835,7 +835,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     }
     snprintf(camParamName[i],BUFNAMESIZE,"aravisCmd%d",i);
   }
-  if((camParamName[ncam]=calloc(BUFNAMESIZE,1))==NULL || (camParamName[ncam+1]=calloc(BUFNAMESIZE,1) || (camParamName[ncam+2]=calloc(BUFNAMESIZE,1))==NULL){
+  if(((camParamName[ncam]=calloc(BUFNAMESIZE,1))==NULL) || ((camParamName[ncam+1]=calloc(BUFNAMESIZE,1))==NULL) || ((camParamName[ncam+2]=calloc(BUFNAMESIZE,1))==NULL)){
     printf("Failed to calloc camParamName in camAravis\n");
     dofree(camstr);
     *camHandle=NULL;
