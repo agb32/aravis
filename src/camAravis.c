@@ -176,7 +176,7 @@ void dofree(CamStruct *camstr){
 
     safefree(camstr->frameReady);
     safefree(camstr->bufArrList);
-    for(i=0;i<camstr->ncam+2;i++)
+    for(i=0;i<camstr->ncam+3;i++)
       safefree(camstr->prevCmd[i]);
     safefree(camstr->prevCmd);
     safefree(camstr->nameList);
@@ -676,7 +676,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->stream=calloc(ncam,sizeof(ArvStream*)));
   TEST(camstr->camera=calloc(ncam,sizeof(ArvCamera*)));
   TEST(camstr->bufArrList=calloc(ncam,sizeof(ArvBuffer*)*NBUF));
-  TEST(camstr->prevCmd=calloc(ncam+2,sizeof(char*)));
+  TEST(camstr->prevCmd=calloc(ncam+3,sizeof(char*)));
   camstr->npxlsArrCum[0]=0;
   printf("malloced things\n");
   for(i=0; i<ncam; i++){
@@ -822,7 +822,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   memset(camstr->reorderIndx,-1,sizeof(int)*ncam);
 
 
-  TEST(camParamName=calloc(ncam+2+ngot,sizeof(char*)));
+  TEST(camParamName=calloc(ncam+3+ngot,sizeof(char*)));
   for(i=0;i<ncam;i++){
     if((camParamName[i]=calloc(BUFNAMESIZE,1))==NULL){
       printf("Failed to calloc camParamName in camAravis\n");
@@ -839,64 +839,65 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     printf("Failed to calloc camParamName in camAravis\n");
     dofree(camstr);
     *camHandle=NULL;
-    for(i=0; i<ncam+2; i++)
+    for(i=0; i<ncam+3; i++)
       free(camParamName[i]);
     free(camParamName);
     return 1;
   }
   snprintf(camParamName[ncam],BUFNAMESIZE,"aravisCmdAll");
   snprintf(camParamName[ncam+1],BUFNAMESIZE,"aravisGet");
+  snprintf(camParamName[ncam+2],BUFNAMESIZE,"aravisMem");
   for(i=0;i<ngot;i++){
-    if((camParamName[ncam+2+i]=calloc(BUFNAMESIZE,1))==NULL){
+    if((camParamName[ncam+3+i]=calloc(BUFNAMESIZE,1))==NULL){
       printf("Failed to calloc reorders in camAravis\n");
       dofree(camstr);
       *camHandle=NULL;
-      for(i=0;i<ncam+2;i++)
+      for(i=0;i<ncam+3;i++)
 	free(camParamName[i]);
       for(i=0;i<ngot;i++)
-	free(camParamName[ncam+2+i]);
+	free(camParamName[ncam+3+i]);
       free(camParamName);
       return 1;
     }
-    snprintf(camParamName[ncam+2+i],16,"camReorder%d",camstr->reorderno[i]);
+    snprintf(camParamName[ncam+3+i],16,"camReorder%d",camstr->reorderno[i]);
   }
   
 
 
   //Now sort them... (actually, not necessary if ncam<10 - already sorted).
 #define islt(a,b) (strcmp((*a),(*b))<0)
-  QSORT(char*,camParamName,ncam+2+ngot,islt);
+  QSORT(char*,camParamName,ncam+3+ngot,islt);
 #undef islt
   //now capture the order (and we know the camReorders will come after aravis*)
   for(i=0;i<ngot;i++){
-    j=atoi(&camParamName[i+ncam+2][10]);
+    j=atoi(&camParamName[i+ncam+3][10]);
     for(k=0;k<ncam;k++){
       if(camstr->reorder[k]==j){
-	camstr->reorderIndx[k]=i+ncam+2;
+	camstr->reorderIndx[k]=i+ncam+3;
       }
     }
   }
 
   //now make the parameter buffer
-  if((camstr->paramNames=calloc(ncam+2+ngot,BUFNAMESIZE))==NULL){
+  if((camstr->paramNames=calloc(ncam+3+ngot,BUFNAMESIZE))==NULL){
     printf("Failed to mallocparamNames in camAravis.c\n");
     dofree(camstr);
     *camHandle=NULL;
-    for(i=0; i<ncam+2+ngot; i++)
+    for(i=0; i<ncam+3+ngot; i++)
       free(camParamName[i]);
     free(camParamName);
     return 1;
   }
-  for(i=0; i<ncam+2+ngot; i++){
+  for(i=0; i<ncam+3+ngot; i++){
     memcpy(&camstr->paramNames[i*BUFNAMESIZE],camParamName[i],BUFNAMESIZE);
     printf("%16s\n",&camstr->paramNames[i*BUFNAMESIZE]);
     free(camParamName[i]);
   }
   free(camParamName);
-  TEST(camstr->index=calloc(sizeof(int),ncam+2+ngot));
-  TEST(camstr->values=calloc(sizeof(void*),ncam+2+ngot));
-  TEST(camstr->dtype=calloc(sizeof(char),ncam+2+ngot));
-  TEST(camstr->nbytes=calloc(sizeof(int),ncam+2+ngot));
+  TEST(camstr->index=calloc(sizeof(int),ncam+3+ngot));
+  TEST(camstr->values=calloc(sizeof(void*),ncam+3+ngot));
+  TEST(camstr->dtype=calloc(sizeof(char),ncam+3+ngot));
+  TEST(camstr->nbytes=calloc(sizeof(int),ncam+3+ngot));
   camstr->nReorders=ngot;
   
   for(i=0; i<ncam; i++){
@@ -972,7 +973,28 @@ int camClose(void **camHandle){
   printf("Camera closed\n");
   return 0;
 }
-
+int writeCamMemory(CamStruct *camstr,int cam,unsigned int addr,void *data,unsigned int len){
+  int rt=0; 
+  int deviceOpened=0;
+  ArvDevice *device;
+  if(camstr->camera[cam]==NULL){
+    device=arv_open_device (camstr->camNameList[cam]);
+    deviceOpened=1;
+  }else{
+    //device[i] = arv_open_device (camNameList[i]);
+    device=arv_camera_get_device(camstr->camera[cam]);
+  }
+  if (!ARV_IS_DEVICE (device)) {
+    printf ("Device '%s' not found\n", camstr->camNameList[cam]);
+    rt=1;
+  }else{
+    printf("Writing %d bytes at address %#x for camera %d\n",len,addr,cam);
+    arv_device_write_memory(device,addr,len,data,NULL);
+  }
+  if(deviceOpened)
+    g_object_unref(device);
+  return rt;
+}
 
 int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
   //First, close cameras if they're already open.
@@ -1150,13 +1172,16 @@ int camNewParam(void *camHandle,paramBuf *pbuf,unsigned int frameno,arrayStruct 
   int i,j,cam;
   CamStruct *camstr=(CamStruct*)camHandle;
   int err=0;
+  unsigned int addr;
+  unsigned int len;
+  void *data;
   printf("camNewParam\n");
-  bufferGetIndex(pbuf,camstr->ncam+2+camstr->nReorders,camstr->paramNames,camstr->index,camstr->values,camstr->dtype,camstr->nbytes);
+  bufferGetIndex(pbuf,camstr->ncam+3+camstr->nReorders,camstr->paramNames,camstr->index,camstr->values,camstr->dtype,camstr->nbytes);
   memset(camstr->reorderBuf,0,camstr->ncam*sizeof(int*));
-  for(i=0;i<camstr->ncam+2+camstr->nReorders;i++){
+  for(i=0;i<camstr->ncam+3+camstr->nReorders;i++){
     printf("%16s: Index %d\n",&camstr->paramNames[i*BUFNAMESIZE],camstr->index[i]);
     if(camstr->index[i]>=0){
-      if(i<camstr->ncam+2){//aravis*
+      if(i<camstr->ncam+3){//aravis*
 	if(camstr->nbytes[i]==0){
 	  printf("Unsetting command %16s\n",&camstr->paramNames[i*BUFNAMESIZE]);
 	  if(camstr->prevCmd[i]!=NULL)
@@ -1183,9 +1208,21 @@ int camNewParam(void *camHandle,paramBuf *pbuf,unsigned int frameno,arrayStruct 
 	      //requesting a value. Format is ?cam:parameter where cam is the camera number and parameter is the parameter to get.  Replaces the string with the result.
 	      getCamValue(camstr,(char*)camstr->values[i],camstr->nbytes[i]);
 	    }
+	  }else if(!strcmp("aravisMem",&camstr->paramNames[i*BUFNAMESIZE])){
+	    if(camstr->nbytes[i]>8){
+	      //Write some memory in one of the cameras.  The first element is the camera number (4 bytes), next 4 bytes is the address, followed by the data...
+	      cam=((int*)(camstr->values[i]))[0];
+	      ((int*)(camstr->values[i]))[0]=-1;//and unset, so that don't write in the next buffer swap...
+	      if(cam>=0 && cam<camstr->ncam){
+		addr=((unsigned int*)(camstr->values[i]))[1];
+		data=&(((char*)(camstr->values[i]))[2*sizeof(int)]);
+		len=camstr->nbytes[i]-2*sizeof(int);
+		writeCamMemory(camstr,cam,addr,(void*)data,len);
+	      }
+	    }
 	  }
 	}
-      }else if(i<camstr->ncam+2+camstr->nReorders){//camReorder...
+      }else if(i<camstr->ncam+3+camstr->nReorders){//camReorder...
 	if(camstr->nbytes[i]>0){
 	  if(camstr->dtype[i]=='i'){
 	    //for which camera(s) is this?
