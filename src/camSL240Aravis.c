@@ -1146,7 +1146,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
       camstr->offsetX[i+ncamSL240]=args[ncamSL240*(6+es)+4+i*(9+es)];//offsetx
       camstr->offsetY[i+ncamSL240]=args[ncamSL240*(6+es)+5+i*(9+es)];//offsety
       camstr->campxlx[i+ncamSL240]=args[ncamSL240*(6+es)+6+i*(9+es)];//campxlx
-      camstr->campxly[i+ncamSL240]=args[ncamSL240*(6+es)+7+i*(9+es)];//campxlx
+      camstr->campxly[i+ncamSL240]=args[ncamSL240*(6+es)+7+i*(9+es)];//campxly
       camstr->byteswapInts[i+ncamSL240]=args[ncamSL240*(6+es)+8+i*(9+es)];//byte swap ints?
       camstr->reorder[i+ncamSL240]=args[ncamSL240*(6+es)+9+i*(9+es)];//reorder
 
