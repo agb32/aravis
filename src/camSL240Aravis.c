@@ -1142,7 +1142,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     }
     for(i=0;i<ncam-ncamSL240;i++){
       camstr->bpp[i+ncamSL240]=args[ncamSL240*(6+es)+2+i*(9+es)];//bits/pixel
-      camstr->blocksize[i+ncamSL240]=args[ncamSL240*(6+es)+3+i*(9+es)];//blocksize
+      camstr->blocksize[i+ncamSL240]=args[ncamSL240*(6+es)+3+i*(9+es)];//blocksize in bytes
       camstr->offsetX[i+ncamSL240]=args[ncamSL240*(6+es)+4+i*(9+es)];//offsetx
       camstr->offsetY[i+ncamSL240]=args[ncamSL240*(6+es)+5+i*(9+es)];//offsety
       camstr->campxlx[i+ncamSL240]=args[ncamSL240*(6+es)+6+i*(9+es)];//campxlx
