@@ -80,10 +80,13 @@ typedef struct{
   int *readStarted;
   int *pxlx;
   int *pxly;
+  int *campxlx;//for aravis - if camera image format different from actual format.
+  int *campxly;
   circBuf *rtcErrorBuf;
   int *frameReady;
   int *offsetX;
   int *offsetY;
+  int *byteswapInts;
   struct timeval *timestamp;
   int recordTimestamp;//option to use timestamp of last pixel arriving rather than frame number.
   int auto_socket_buffer;
@@ -93,6 +96,13 @@ typedef struct{
   unsigned int frame_retention;
   int *bpp;
   int bytespp;
+
+  int *reorder;//is pixel reordering required, and if so, which pattern?
+  int **reorderBuf;//pixels for reordering.
+  int *reorderIndx;
+  int *reorderno;
+  int nReorders;
+
   ArvBuffer **mostRecentFilled;//a completed buffer for each camera
   ArvBuffer **currentFilling;//the buffer that is currently being written to with new camera data
   ArvBuffer **rtcReading;//the buffer that is being used to transfer data to darc
@@ -145,9 +155,12 @@ void dofree(CamStruct *camstr){
     //safefree(camstr->pxlShift);
     safefree(camstr->pxlx);
     safefree(camstr->pxly);
+    safefree(camstr->campxlx);
+    safefree(camstr->campxly);
     safefree(camstr->timestamp);
     safefree(camstr->offsetX);
     safefree(camstr->offsetY);
+    safefree(camstr->byteswapInts);
     safefree(camstr->mostRecentFilled);
     safefree(camstr->currentFilling);
     safefree(camstr->rtcReading);
@@ -156,9 +169,14 @@ void dofree(CamStruct *camstr){
     safefree(camstr->camera);
     safefree(camstr->camNameList);
     safefree(camstr->bpp);
+    safefree(camstr->reorder);
+    safefree(camstr->reorderBuf);
+    safefree(camstr->reorderno);
+    safefree(camstr->reorderIndx);
+
     safefree(camstr->frameReady);
     safefree(camstr->bufArrList);
-    for(i=0;i<camstr->ncam+2;i++)
+    for(i=0;i<camstr->ncam+3;i++)
       safefree(camstr->prevCmd[i]);
     safefree(camstr->prevCmd);
     safefree(camstr->nameList);
@@ -418,6 +436,19 @@ int stopCamera(CamStruct *camstr,int cam){
   }
   return 0;
 }
+int byteswap(int a){
+  int len=4;
+  char *p=(char*)&a;
+  int i;
+  char tmp;
+  for(i = 0; i < len/2; i++) {
+    tmp = p[len-i-1];
+    p[len-i-1] = p[i];
+    p[i] = tmp;
+  }
+  return a;
+}
+
 int startCamera(CamStruct *camstr,int cam){
   ArvCamera *camera;
   ArvStream *stream;
@@ -439,10 +470,22 @@ int startCamera(CamStruct *camstr,int cam){
     gint dx, dy;
     double exposure;
     int gain;
+    int ox,oy,nx,ny;
     //guint software_trigger_source = 0;
     ArvBuffer **bufArr;
     bufArr=&camstr->bufArrList[cam*NBUF];
-    arv_camera_set_region (camera, camstr->offsetX[cam],camstr->offsetY[cam], camstr->pxlx[cam], camstr->pxly[cam]);
+    if(camstr->byteswapInts[cam]){
+      ox=byteswap(camstr->offsetX[cam]);
+      oy=byteswap(camstr->offsetY[cam]);
+      nx=byteswap(camstr->campxlx[cam]);
+      ny=byteswap(camstr->campxly[cam]);
+    }else{
+      ox=camstr->offsetX[cam];
+      oy=camstr->offsetY[cam];
+      nx=camstr->campxlx[cam];
+      ny=camstr->campxly[cam];
+    }
+    arv_camera_set_region (camera, ox,oy,nx,ny);
     //arv_camera_set_binning (camera, arv_option_horizontal_binning, arv_option_vertical_binning);//no binning at the moment
     //arv_camera_set_exposure_time (camera, arv_option_exposure_time_us);
     //arv_camera_set_gain (camera, arv_option_gain);  
@@ -520,10 +563,11 @@ int startCamera(CamStruct *camstr,int cam){
 
 int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char *prefix,arrayStruct *arr,void **camHandle,int nthreads,unsigned int frameno,unsigned int **camframeno,int *camframenoSize,int npxls,int ncam,int *pxlx,int* pxly){
   CamStruct *camstr;
-  int i,j;
+  int i,j,k;
   unsigned short *tmps;
   char pxlbuftype;
   int maxbpp;
+  int ngot;
   int bytespp,camIDLen=0,nn;
   char **camParamName;
   printf("Initialising camera %s\n",name);
@@ -613,9 +657,17 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->threadPriority=calloc(ncam,sizeof(int)));
   TEST(camstr->pxlx=calloc(ncam,sizeof(int)));
   TEST(camstr->pxly=calloc(ncam,sizeof(int)));
+  TEST(camstr->campxlx=calloc(ncam,sizeof(int)));
+  TEST(camstr->campxly=calloc(ncam,sizeof(int)));
   TEST(camstr->frameReady=calloc(ncam,sizeof(int)));
   TEST(camstr->offsetX=calloc(ncam,sizeof(int)));
   TEST(camstr->offsetY=calloc(ncam,sizeof(int)));
+  TEST(camstr->byteswapInts=calloc(ncam,sizeof(int)));
+  TEST(camstr->reorder=calloc(ncam,sizeof(int)));
+  TEST(camstr->reorderno=calloc(ncam,sizeof(int)));
+  TEST(camstr->reorderIndx=calloc(ncam,sizeof(int)));
+  TEST(camstr->reorderBuf=calloc(ncam,sizeof(int*)));
+
   TEST(camstr->timestamp=calloc(ncam,sizeof(struct timeval)));
   TEST(camstr->mostRecentFilled=calloc(ncam,sizeof(ArvBuffer*)));
   TEST(camstr->currentFilling=calloc(ncam,sizeof(ArvBuffer*)));
@@ -624,21 +676,27 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->stream=calloc(ncam,sizeof(ArvStream*)));
   TEST(camstr->camera=calloc(ncam,sizeof(ArvCamera*)));
   TEST(camstr->bufArrList=calloc(ncam,sizeof(ArvBuffer*)*NBUF));
-  TEST(camstr->prevCmd=calloc(ncam+2,sizeof(char*)));
+  TEST(camstr->prevCmd=calloc(ncam+3,sizeof(char*)));
   camstr->npxlsArrCum[0]=0;
   printf("malloced things\n");
   for(i=0; i<ncam; i++){
     camstr->pxlx[i]=pxlx[i];
     camstr->pxly[i]=pxly[i];
+    camstr->campxlx[i]=pxlx[i];//overwritten later (args)
+    camstr->campxly[i]=pxly[i];//overwritten later (args)
     camstr->npxlsArr[i]=pxlx[i]*pxly[i];
     camstr->npxlsArrCum[i+1]=camstr->npxlsArrCum[i]+camstr->npxlsArr[i];
   }
 
   //Parameters are:
-  //bpp[ncam]
+  //bpp[ncam] (not actually sent to camera - use aravisCmd* - but used by darc).
   //blocksize[ncam]
   //offsetX[ncam]
   //offsetY[ncam]
+  //npxlx[cam]//sent to camera
+  //npxly[cam]//sent to camera
+  //byteswapInts[ncam]
+  //reorder[ncam]
   //prio[ncam]
   //affinElSize
   //affin[ncam*elsize]
@@ -674,17 +732,41 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   }
   if(n>=5*ncam){
     for(i=0;i<ncam;i++)
-      camstr->threadPriority[i]=args[4*ncam+i];
+      camstr->campxlx[i]=args[4*ncam+i];
+  }
+  if(n>=6*ncam){
+    for(i=0;i<ncam;i++)
+      camstr->campxly[i]=args[5*ncam+i];
+  }
+
+  if(n>=7*ncam){
+    for(i=0;i<ncam;i++){
+      camstr->byteswapInts[i]=args[6*ncam+i];
+      if(camstr->byteswapInts[i]>1 || camstr->byteswapInts[i]<0){
+	printf("Error - config file out of date for camAravis - byteswapInts (and reorder) parameter has been added...\n");
+	dofree(camstr);
+	*camHandle=NULL;
+	return 1;
+      }
+    }
+  }
+  if(n>=8*ncam){
+    for(i=0;i<ncam;i++)
+      camstr->reorder[i]=args[7*ncam+i];//reorder pixels
+  }
+  if(n>=9*ncam){
+    for(i=0;i<ncam;i++)
+      camstr->threadPriority[i]=args[8*ncam+i];
   }
   //Note:  threadAffinElSize==args[5*ncam] (accessed previously)
-  if(n>(5+camstr->threadAffinElSize)*ncam){
+  if(n>(9+camstr->threadAffinElSize)*ncam){
     for(i=0;i<ncam;i++)
       for(j=0;j<camstr->threadAffinElSize;j++)
-	camstr->threadAffinity[i*camstr->threadAffinElSize+j]=(unsigned int)(args[5*ncam+1+i*camstr->threadAffinElSize+j]);
+	camstr->threadAffinity[i*camstr->threadAffinElSize+j]=(unsigned int)(args[9*ncam+1+i*camstr->threadAffinElSize+j]);
   }
-  if(n>(5+camstr->threadAffinElSize)*ncam+2){
-    camIDLen=args[(5+camstr->threadAffinElSize)*ncam+1];//number of bytes to describe camera names.
-    camstr->nameList=strndup((char*)&args[(5+camstr->threadAffinElSize)*ncam+2],camIDLen);
+  if(n>(9+camstr->threadAffinElSize)*ncam+2){
+    camIDLen=args[(9+camstr->threadAffinElSize)*ncam+1];//number of bytes to describe camera names.
+    camstr->nameList=strndup((char*)&args[(9+camstr->threadAffinElSize)*ncam+2],camIDLen);
     char *namePtr=camstr->nameList;
     char *next;
     i=0;
@@ -712,7 +794,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     else
       printf("WARNING - no cameras defined, not sure what will happen...\n");
   }
-  nn=(5+camstr->threadAffinElSize)*ncam+2+((camIDLen+sizeof(int)-1)/sizeof(int));//number of args used so far...
+  nn=(9+camstr->threadAffinElSize)*ncam+2+((camIDLen+sizeof(int)-1)/sizeof(int));//number of args used so far...
   if(n>nn){
     camstr->recordTimestamp=args[nn];
   }else{
@@ -722,8 +804,25 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   printf("got args (recordTimestamp=%d)\n",camstr->recordTimestamp);
 
 
-  //now need to prepare the camera parameter buffer names: aravisCmdN
-  TEST(camParamName=calloc(ncam+2,sizeof(char*)));
+  //now need to prepare the camera parameter buffer names: aravisCmdN, camReorderN
+  ngot=0;
+  for(i=0; i<ncam; i++){
+    if(camstr->reorder[i]!=0){
+      for(j=0;j<ngot;j++){//have we already got this reorder?
+	if(camstr->reorderno[j]==camstr->reorder[i]){
+	  break;
+	}
+      }
+      if(j==ngot){//a new entry
+	camstr->reorderno[j]=camstr->reorder[i];
+	ngot++;
+      }
+    }
+  }
+  memset(camstr->reorderIndx,-1,sizeof(int)*ncam);
+
+
+  TEST(camParamName=calloc(ncam+3+ngot,sizeof(char*)));
   for(i=0;i<ncam;i++){
     if((camParamName[i]=calloc(BUFNAMESIZE,1))==NULL){
       printf("Failed to calloc camParamName in camAravis\n");
@@ -736,42 +835,71 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     }
     snprintf(camParamName[i],BUFNAMESIZE,"aravisCmd%d",i);
   }
-  if((camParamName[ncam]=calloc(BUFNAMESIZE,1))==NULL || (camParamName[ncam+1]=calloc(BUFNAMESIZE,1))==NULL){
+  if(((camParamName[ncam]=calloc(BUFNAMESIZE,1))==NULL) || ((camParamName[ncam+1]=calloc(BUFNAMESIZE,1))==NULL) || ((camParamName[ncam+2]=calloc(BUFNAMESIZE,1))==NULL)){
     printf("Failed to calloc camParamName in camAravis\n");
     dofree(camstr);
     *camHandle=NULL;
-    for(i=0; i<ncam+2; i++)
+    for(i=0; i<ncam+3; i++)
       free(camParamName[i]);
     free(camParamName);
     return 1;
   }
   snprintf(camParamName[ncam],BUFNAMESIZE,"aravisCmdAll");
   snprintf(camParamName[ncam+1],BUFNAMESIZE,"aravisGet");
+  snprintf(camParamName[ncam+2],BUFNAMESIZE,"aravisMem");
+  for(i=0;i<ngot;i++){
+    if((camParamName[ncam+3+i]=calloc(BUFNAMESIZE,1))==NULL){
+      printf("Failed to calloc reorders in camAravis\n");
+      dofree(camstr);
+      *camHandle=NULL;
+      for(i=0;i<ncam+3;i++)
+	free(camParamName[i]);
+      for(i=0;i<ngot;i++)
+	free(camParamName[ncam+3+i]);
+      free(camParamName);
+      return 1;
+    }
+    snprintf(camParamName[ncam+3+i],16,"camReorder%d",camstr->reorderno[i]);
+  }
+  
+
+
   //Now sort them... (actually, not necessary if ncam<10 - already sorted).
 #define islt(a,b) (strcmp((*a),(*b))<0)
-  QSORT(char*,camParamName,ncam+2,islt);
+  QSORT(char*,camParamName,ncam+3+ngot,islt);
 #undef islt
+  //now capture the order (and we know the camReorders will come after aravis*)
+  for(i=0;i<ngot;i++){
+    j=atoi(&camParamName[i+ncam+3][10]);
+    for(k=0;k<ncam;k++){
+      if(camstr->reorder[k]==j){
+	camstr->reorderIndx[k]=i+ncam+3;
+      }
+    }
+  }
+
   //now make the parameter buffer
-  if((camstr->paramNames=calloc(ncam+2,BUFNAMESIZE))==NULL){
+  if((camstr->paramNames=calloc(ncam+3+ngot,BUFNAMESIZE))==NULL){
     printf("Failed to mallocparamNames in camAravis.c\n");
     dofree(camstr);
     *camHandle=NULL;
-    for(i=0; i<ncam+2; i++)
+    for(i=0; i<ncam+3+ngot; i++)
       free(camParamName[i]);
     free(camParamName);
     return 1;
   }
-  for(i=0; i<ncam+2; i++){
+  for(i=0; i<ncam+3+ngot; i++){
     memcpy(&camstr->paramNames[i*BUFNAMESIZE],camParamName[i],BUFNAMESIZE);
     printf("%16s\n",&camstr->paramNames[i*BUFNAMESIZE]);
     free(camParamName[i]);
   }
   free(camParamName);
-  TEST(camstr->index=calloc(sizeof(int),ncam+2));
-  TEST(camstr->values=calloc(sizeof(void*),ncam+2));
-  TEST(camstr->dtype=calloc(sizeof(char),ncam+2));
-  TEST(camstr->nbytes=calloc(sizeof(int),ncam+2));
-
+  TEST(camstr->index=calloc(sizeof(int),ncam+3+ngot));
+  TEST(camstr->values=calloc(sizeof(void*),ncam+3+ngot));
+  TEST(camstr->dtype=calloc(sizeof(char),ncam+3+ngot));
+  TEST(camstr->nbytes=calloc(sizeof(int),ncam+3+ngot));
+  camstr->nReorders=ngot;
+  
   for(i=0; i<ncam; i++){
     if(pthread_cond_init(&camstr->camCond[i],NULL)!=0){
       printf("Error initialising condition variable %d\n",i);
@@ -800,6 +928,10 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     *camHandle=NULL;
     return 1;
   }
+  printf("Reorders:\n");
+  for(i=0;i<ncam;i++)
+    printf("%d %p\n",camstr->reorder[i],camstr->reorderBuf[i]);
+
   //Now open the cameras and start framing.
   for(i=0;i<ncam;i++){
     if(startCamera(camstr,i)){//starts a new thread...
@@ -841,7 +973,28 @@ int camClose(void **camHandle){
   printf("Camera closed\n");
   return 0;
 }
-
+int writeCamMemory(CamStruct *camstr,int cam,unsigned int addr,void *data,unsigned int len){
+  int rt=0; 
+  int deviceOpened=0;
+  ArvDevice *device;
+  if(camstr->camera[cam]==NULL){
+    device=arv_open_device (camstr->camNameList[cam]);
+    deviceOpened=1;
+  }else{
+    //device[i] = arv_open_device (camNameList[i]);
+    device=arv_camera_get_device(camstr->camera[cam]);
+  }
+  if (!ARV_IS_DEVICE (device)) {
+    printf ("Device '%s' not found\n", camstr->camNameList[cam]);
+    rt=1;
+  }else{
+    printf("Writing %d bytes at address %#x for camera %d\n",len,addr,cam);
+    arv_device_write_memory(device,addr,len,data,NULL);
+  }
+  if(deviceOpened)
+    g_object_unref(device);
+  return rt;
+}
 
 int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
   //First, close cameras if they're already open.
@@ -879,8 +1032,21 @@ int sendCamCommand(CamStruct *camstr,int i,char *thecmd){
       }else
 	printf("Sending: %s\n",name);
       feature=arv_device_get_feature (device, name);
-      if (!ARV_IS_GC_NODE (feature)){
-	printf("todo: node setting %d %s\n",i,name);
+      if (!ARV_IS_GC_FEATURE_NODE (feature)){
+	if(name[0]=='R' && name[1]=='['){
+	  guint32 value;
+	  guint32 address;
+	  address=(unsigned int)strtol(&name[2],NULL,0);
+	  printf("Address %#x\n",address);
+	  if(val!=NULL){
+	    value=(unsigned int)strtol(val,NULL,0);
+	    arv_device_write_register(device,address,value, NULL);
+	  }
+	  arv_device_read_register(device,address,&value,NULL);
+	  printf("Got: R[0x%08x] = 0x%08x\n",address,value);
+	}else{
+	  printf("Feature '%s' not found\n",name);
+	}
       }else{
 	if (ARV_IS_GC_COMMAND (feature)) {
 	  arv_gc_command_execute (ARV_GC_COMMAND (feature), NULL);
@@ -1002,40 +1168,77 @@ int getCamValue(CamStruct *camstr,char* nameres,int nbytes){
    New parameters in the buffer (optional)...
 */
 int camNewParam(void *camHandle,paramBuf *pbuf,unsigned int frameno,arrayStruct *arr){
-  //the only params needed is aravisCmdN for N=0 -> ncam-1
+  //the only params needed is aravisCmdN for N=0 -> ncam-1 and camReorder if reorder!=0/
   int i,j,cam;
   CamStruct *camstr=(CamStruct*)camHandle;
   int err=0;
+  unsigned int addr;
+  unsigned int len;
+  void *data;
   printf("camNewParam\n");
-  bufferGetIndex(pbuf,camstr->ncam+2,camstr->paramNames,camstr->index,camstr->values,camstr->dtype,camstr->nbytes);
-  for(i=0;i<camstr->ncam+2;i++){
+  bufferGetIndex(pbuf,camstr->ncam+3+camstr->nReorders,camstr->paramNames,camstr->index,camstr->values,camstr->dtype,camstr->nbytes);
+  memset(camstr->reorderBuf,0,camstr->ncam*sizeof(int*));
+  for(i=0;i<camstr->ncam+3+camstr->nReorders;i++){
     printf("%16s: Index %d\n",&camstr->paramNames[i*BUFNAMESIZE],camstr->index[i]);
     if(camstr->index[i]>=0){
-      if(camstr->nbytes[i]==0){
-	printf("Unsetting command %16s\n",&camstr->paramNames[i*BUFNAMESIZE]);
-	if(camstr->prevCmd[i]!=NULL)
-	  free(camstr->prevCmd[i]);
-	camstr->prevCmd[i]=NULL;
-      }else{//&& camstr->nbytes[i]>0 && camstr->dtype[i]=='s'){//params found.
-	if(!strncmp("aravisCmd",&camstr->paramNames[i*BUFNAMESIZE],9)){//a command...
-	  if(camstr->prevCmd[i]==NULL || strncmp(camstr->prevCmd[i],camstr->values[i],camstr->nbytes[i])!=0 || strlen(camstr->prevCmd[i])!=camstr->nbytes[i]-1){
-	    if(camstr->prevCmd[i]!=NULL)
-	      free(camstr->prevCmd[i]);
-	    camstr->prevCmd[i]=strndup(camstr->values[i],camstr->nbytes[i]);
-	    if(!strncmp("aravisCmdAll",&camstr->paramNames[i*BUFNAMESIZE],12)){
-	      printf("Calling sendCamCommand for all cameras, cmd %s\n",camstr->prevCmd[i]);
-	      for(j=0;j<camstr->ncam;j++)
-		err|=sendCamCommand(camstr,j,camstr->prevCmd[i]);
-	    }else{
-	      cam=atoi(&camstr->paramNames[i*BUFNAMESIZE+9]);
-	      printf("Calling sendCamCommand for cam %d, cmd %s\n",cam,camstr->prevCmd[i]);
-	      err=sendCamCommand(camstr,cam,camstr->prevCmd[i]);
+      if(i<camstr->ncam+3){//aravis*
+	if(camstr->nbytes[i]==0){
+	  printf("Unsetting command %16s\n",&camstr->paramNames[i*BUFNAMESIZE]);
+	  if(camstr->prevCmd[i]!=NULL)
+	    free(camstr->prevCmd[i]);
+	  camstr->prevCmd[i]=NULL;
+	}else{//&& camstr->nbytes[i]>0 && camstr->dtype[i]=='s'){//params found.
+	  if(!strncmp("aravisCmd",&camstr->paramNames[i*BUFNAMESIZE],9)){//a command...
+	    if(camstr->prevCmd[i]==NULL || strncmp(camstr->prevCmd[i],camstr->values[i],camstr->nbytes[i])!=0 || strlen(camstr->prevCmd[i])!=camstr->nbytes[i]-1){
+	      if(camstr->prevCmd[i]!=NULL)
+		free(camstr->prevCmd[i]);
+	      camstr->prevCmd[i]=strndup(camstr->values[i],camstr->nbytes[i]);
+	      if(!strncmp("aravisCmdAll",&camstr->paramNames[i*BUFNAMESIZE],12)){
+		printf("Calling sendCamCommand for all cameras, cmd %s\n",camstr->prevCmd[i]);
+		for(j=0;j<camstr->ncam;j++)
+		  err|=sendCamCommand(camstr,j,camstr->prevCmd[i]);
+	      }else{
+		cam=atoi(&camstr->paramNames[i*BUFNAMESIZE+9]);
+		printf("Calling sendCamCommand for cam %d, cmd %s\n",cam,camstr->prevCmd[i]);
+		err=sendCamCommand(camstr,cam,camstr->prevCmd[i]);
+	      }
+	    }
+	  }else if(!strcmp("aravisGet",&camstr->paramNames[i*BUFNAMESIZE])){
+	    if(camstr->nbytes[i]>3 && ((char*)(camstr->values[i]))[0]=='?'){
+	      //requesting a value. Format is ?cam:parameter where cam is the camera number and parameter is the parameter to get.  Replaces the string with the result.
+	      getCamValue(camstr,(char*)camstr->values[i],camstr->nbytes[i]);
+	    }
+	  }else if(!strcmp("aravisMem",&camstr->paramNames[i*BUFNAMESIZE])){
+	    if(camstr->nbytes[i]>8){
+	      //Write some memory in one of the cameras.  The first element is the camera number (4 bytes), next 4 bytes is the address, followed by the data...
+	      cam=((int*)(camstr->values[i]))[0];
+	      ((int*)(camstr->values[i]))[0]=-1;//and unset, so that don't write in the next buffer swap...
+	      if(cam>=0 && cam<camstr->ncam){
+		addr=((unsigned int*)(camstr->values[i]))[1];
+		data=&(((char*)(camstr->values[i]))[2*sizeof(int)]);
+		len=camstr->nbytes[i]-2*sizeof(int);
+		writeCamMemory(camstr,cam,addr,(void*)data,len);
+	      }
 	    }
 	  }
-	}else if(!strcmp("aravisGet",&camstr->paramNames[i*BUFNAMESIZE])){
-	  if(camstr->nbytes[i]>3 && ((char*)(camstr->values[i]))[0]=='?'){
-	    //requesting a value. Format is ?cam:parameter where cam is the camera number and parameter is the parameter to get.  Replaces the string with the result.
-	    getCamValue(camstr,(char*)camstr->values[i],camstr->nbytes[i]);
+	}
+      }else if(i<camstr->ncam+3+camstr->nReorders){//camReorder...
+	if(camstr->nbytes[i]>0){
+	  if(camstr->dtype[i]=='i'){
+	    //for which camera(s) is this?
+	    for(j=0; j<camstr->ncam; j++){
+	      if(camstr->reorderIndx[j]==i){//a reorder for this camera
+		if(camstr->nbytes[i]==sizeof(int)*camstr->npxlsArr[j]){
+		  camstr->reorderBuf[j]=(int*)camstr->values[i];
+		}else{
+		  printf("Wrong size for camReorder\n");
+		  err=1;
+		}
+	      }
+	    }
+	  }else{
+	    printf("Wrong dtype for camReorder\n");
+	    err=1;
 	  }
 	}
       }
@@ -1079,6 +1282,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
   CamStruct *camstr=(CamStruct*)camHandle;
   int rt=0;
   int i,gotNewFrame;
+  int amp,rl,tb,pxl,j,x,y;
   //static struct timeval t1;
   //struct timeval t2;
   //struct timeval t3;
@@ -1102,7 +1306,8 @@ int camWaitPixels(int n,int cam,void *camHandle){
     camstr->pxlsTransferred[cam]=0;
     gotNewFrame=0;
     while(gotNewFrame==0){
-      if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+      //if(camstr->mostRecentFilled[cam]!=NULL && camstr->mostRecentFilled[cam]!=camstr->rtcReading[cam]){
+      if(camstr->currentFilling[cam]!=NULL && camstr->currentFilling[cam]!=camstr->rtcReading[cam]){
 	//have a full buffer waiting for processing.
 	//printf("Setting rtcReading to mostRecentFilled, and mostRecentFilled to NULL\n");
 	camstr->rtcReading[cam]=camstr->currentFilling[cam];//mostRecentFilled[cam];
@@ -1158,13 +1363,100 @@ int camWaitPixels(int n,int cam,void *camHandle){
   //Now copy the data.
   if(rt==0 && n>camstr->pxlsTransferred[cam]){
     if(camstr->bytespp==1){//all cameras are <=8 bits per pixel.
-      memcpy(&camstr->imgdata[(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[camstr->pxlsTransferred[cam]]),(n-camstr->pxlsTransferred[cam]));
+      if(camstr->reorder[cam]==0){//no pixel reordering
+	memcpy(&camstr->imgdata[(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[camstr->pxlsTransferred[cam]]),(n-camstr->pxlsTransferred[cam]));
+      }else{
+	if(camstr->reorderBuf[cam]!=NULL){//reordering based on parameter buffer.
+	  for(i=camstr->pxlsTransferred[cam];i<n;i++){
+	    camstr->imgdata[camstr->npxlsArrCum[cam]+camstr->reorderBuf[cam][i]]=(((unsigned char*)(camstr->rtcReading[cam]->data))[i]);
+	  }
+	}else if(camstr->reorder[cam]==1){//specific reorder for scimeasure CCID18 (CANARY LGS)
+	  for(i=camstr->pxlsTransferred[cam]; i<n; i++){
+	    //i%2 specifies whether bottom or top half.
+	    //(i//2)%8 specifies which quadrant it is in.
+	    //i//16 specifies which pixel it is in the 64x16 pixel quadrant.
+	    //row==i//256
+	    //col=(i//16)%16
+	    //Assumes a 128x128 pixel detector...
+	    j=(i%2?127-i/256:i/256)*128+((i/2)%8)*16+(i/16)%16;
+	    camstr->imgdata[camstr->npxlsArrCum[cam]+j]=(((unsigned char*)(camstr->rtcReading[cam]->data))[i]);
+	  }
+	}else if(camstr->reorder[cam]==2){//specific reorder for OCAM2
+	  //Should be 63888 pixels (121*1056/2 -> 264x242).  Each quadrant is 66x121 pixels
+	  for(i=camstr->pxlsTransferred[cam]; i<n; i++){
+	    amp=i%8;//the amplifier (quadrant) in question    0123 (see ocam manual)
+	    //lr=i%2;//left to right amplifier (1,3,5,7)?       7654
+	    rl=1-i%2;//right to left
+	    //bt=amp/4;//bottom to top amplifier (4,5,6,7)?
+	    tb=1-amp/4;//top to bottom amp (0,1,2,3)?
+	    pxl=i/8;//the pixel within a given quadrant
+	    //x=pxl%66;//x within the quad
+	    //if(lr==0)
+	    //  x=65-x;
+	    //if(amp<4)//shift to correct amplifier
+	    //  x+=66*amp;
+	    //else
+	    //  x=66*8-x-66*amp-1
+	    //x=((1-2*rl)*(pxl%66)+rl*65);
+	    x=(tb*2-1)*(((1-2*rl)*(pxl%66)+rl*65)+66*amp)+(1-tb)*(66*8-1);
+
+	    //y=pxl/66;//y within the quad
+	    //if(bt)
+	    //  y=241-y;
+	    y=(1-tb)*241+(2*tb-1)*(pxl/66);
+	    j=y*264+x;
+	    camstr->imgdata[camstr->npxlsArrCum[cam]+j]=(((unsigned char*)(camstr->rtcReading[cam]->data))[i]);
+	  }
+	}
+      }
     }else if(camstr->bytespp==2){
       if(camstr->bpp[cam]<=8){//cast from uint8 to uint16
 	for(i=camstr->pxlsTransferred[cam];i<n;i++)
 	  ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+i]=(unsigned short)(((unsigned char*)(camstr->rtcReading[cam]->data))[i]);
       }else if(camstr->bpp[cam]<=16){//copy
-	memcpy(&camstr->imgdata[2*(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[2*camstr->pxlsTransferred[cam]]),2*(n-camstr->pxlsTransferred[cam]));
+	if(camstr->reorder[cam]==0){//no reordering of pixels
+	  memcpy(&camstr->imgdata[2*(camstr->npxlsArrCum[cam]+camstr->pxlsTransferred[cam])],&(((char*)camstr->rtcReading[cam]->data)[2*camstr->pxlsTransferred[cam]]),2*(n-camstr->pxlsTransferred[cam]));
+	}else{
+	  if(camstr->reorderBuf[cam]!=NULL){
+	    for(i=camstr->pxlsTransferred[cam];i<n;i++){
+	      ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+camstr->reorderBuf[cam][i]]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
+	    }
+	  }else if(camstr->reorder[cam]==1){//specific reorder for scimeasure CCID18 (CANARY LGS)
+	    for(i=camstr->pxlsTransferred[cam];i<n;i++){
+	      j=(i%2?127-i/256:i/256)*128+((i/2)%8)*16+(i/16)%16;
+	      ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
+	    }
+	  }else if(camstr->reorder[cam]==2){//specific reorder for OCAM2
+	    //Should be 63888 pixels (121*1056/2 -> 264x242).  Each quadrant is 66x121 pixels
+	    for(i=camstr->pxlsTransferred[cam]; i<n; i++){
+	      amp=i%8;//the amplifier (quadrant) in question    
+	      rl=1-i%2;//right to left
+	      tb=1-amp/4;//top to bottom amp (0,1,2,3)?
+	      pxl=i/8;//the pixel within a given quadrant
+	      x=(tb*2-1)*(((1-2*rl)*(pxl%66)+rl*65)+66*amp)+(1-tb)*(66*8-1);
+	      y=(1-tb)*241+(2*tb-1)*(pxl/66);
+	      j=y*264+x;
+	      ((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
+	    }
+	    
+	  }else if(camstr->reorder[cam]==3){//specific reorder for OCAM2 without keeping the overscan regions.
+	    //Should be 63888 pixels coming in (121*1056/2 -> 264x242).  Each quadrant is 66x121 pixels.  Then here, convert to 240x240 (inset in the 264x242).  Remove first 6 pixels of each row of each quad, and last row.
+	    for(i=camstr->pxlsTransferred[cam]; i<n; i++){
+	      pxl=i/8;//the pixel within a given quadrant
+	      if(pxl%66>5 && pxl<66*120){//not an overscan pixel
+		amp=i%8;//the amplifier (quadrant) in question    
+		rl=1-i%2;//right to left
+		tb=1-amp/4;//top to bottom amp (0,1,2,3)?
+		x=(tb*2-1)*(((1-2*rl)*(pxl%66-6)+rl*59)+60*amp)+(1-tb)*(60*8-1);
+		y=(1-tb)*239+(2*tb-1)*(pxl/66);
+		j=y*264+x;
+		((unsigned short*)camstr->imgdata)[camstr->npxlsArrCum[cam]+j]=(((unsigned short*)(camstr->rtcReading[cam]->data))[i]);
+	      }
+	    }
+	    
+	  
+}
+	}
       }else{
 	printf("Can't yet handle >16 bits per pixel in camAravis - please recode\n");
       }
