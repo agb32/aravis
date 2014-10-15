@@ -618,7 +618,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   }
   camstr->imgdata=arr->pxlbufs;
   if(n>5*ncam)
-    camstr->threadAffinElSize=args[5*ncam];
+    camstr->threadAffinElSize=args[9*ncam];
   else
     camstr->threadAffinElSize=1;
   //camstr->himgdata=arr->pxlbufs;
