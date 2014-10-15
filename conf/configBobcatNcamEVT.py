@@ -147,18 +147,22 @@ print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
-cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
+cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
 cameraParams[0:ncam]=8#8 bpp - cam0, cam1
 cameraParams[ncam:2*ncam]=20736#block size - 32 rows
 cameraParams[2*ncam-1]=65536#EVT block size.
 cameraParams[2*ncam:3*ncam]=0#x offset
 cameraParams[3*ncam:4*ncam]=0#y offset
-cameraParams[4*ncam:5*ncam]=50#priority
-cameraParams[5*ncam]=1#affin el size
-cameraParams[5*ncam+1:6*ncam+1]=0xfc0fc0#affinity
-cameraParams[6*ncam+1]=namelen#number of bytes for the name.
-cameraParams[6*ncam+2:6*ncam+2+(namelen+3)//4].view("c")[:]=camNames
-cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
+cameraParams[4*ncam:5*ncam]=npxly#camnpxlx
+cameraParams[5*ncam:6*ncam]=npxlx#camnpxly
+cameraParams[6*ncam:7*ncam]=0#byteswap ints
+cameraParams[7*ncam:8*ncam]=0#reorder
+cameraParams[8*ncam:9*ncam]=50#priority
+cameraParams[9*ncam]=1#affin el size
+cameraParams[9*ncam+1:10*ncam+1]=0xfc0fc0#affinity
+cameraParams[10*ncam+1]=namelen#number of bytes for the name.
+cameraParams[10*ncam+2:10*ncam+2+(namelen+3)//4].view("c")[:]=camNames
+cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 

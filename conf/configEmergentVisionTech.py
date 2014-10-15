@@ -110,12 +110,16 @@ cameraParams[0:ncam]=8#8 bpp
 cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
 cameraParams[2*ncam:3*ncam]=0#x offset
 cameraParams[3*ncam:4*ncam]=0#y offset
-cameraParams[4*ncam:5*ncam]=50#priority
-cameraParams[5*ncam]=1#affin el size
-cameraParams[5*ncam+1:6*ncam+1]=0xfc0fc0#affinity
-cameraParams[6*ncam+1]=namelen#number of bytes for the name.
-cameraParams[6*ncam+2:6*ncam+2+(namelen+3)//4].view("c")[:]=camNames
-cameraParams[6*ncam+2+(namelen+3)//4]=0#record timestamp
+cameraParams[4*ncam:5*ncam]=npxlx#camnpxlx
+cameraParams[5*ncam:6*ncam]=npxly#camnpxly
+cameraParams[6*ncam:7*ncam]=0#byteswap
+cameraParams[7*ncam:8*ncam]=0#reorder
+cameraParams[8*ncam:9*ncam]=50#priority
+cameraParams[9*ncam]=1#affin el size
+cameraParams[9*ncam+1:10*ncam+1]=0xfc0fc0#affinity
+cameraParams[10*ncam+1]=namelen#number of bytes for the name.
+cameraParams[10*ncam+2:10*ncam+2+(namelen+3)//4].view("c")[:]=camNames
+cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
