@@ -122,7 +122,7 @@ for k in range(ncam):
 //multicastMaster[ncam]#if 1 and multicastAddr!=0, then this should set up camera for multicasting.
 //multicastAddr[ncam]#if 0, not a multicast camera.  Else, an IP address, e.g. for 225.0.0.250, this would be (225<<24)+(0<<16)+(0<<8)+250.   Or, equivalently:  socket.ntohl(int(numpy.fromstring(socket.inet_aton("225.0.0.250"),numpy.int32)[0]))
 """
-camList=["Imprex, inc.-110528","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
+camList=["Imperx, inc.-110528","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
