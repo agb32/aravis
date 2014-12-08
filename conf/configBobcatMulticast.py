@@ -40,7 +40,7 @@ else:
     try:
         ncam=int(prefix)
     except:
-        ncam=4
+        ncam=1
 print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
@@ -122,13 +122,13 @@ for k in range(ncam):
 //multicastMaster[ncam]#if 1 and multicastAddr!=0, then this should set up camera for multicasting.
 //multicastAddr[ncam]#if 0, not a multicast camera.  Else, an IP address, e.g. for 225.0.0.250, this would be (225<<24)+(0<<16)+(0<<8)+250.   Or, equivalently:  socket.ntohl(int(numpy.fromstring(socket.inet_aton("225.0.0.250"),numpy.int32)[0]))
 """
-camList=["Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
+camList=["Imprex, inc.-110528","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
-cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
+cameraParams=numpy.zeros((12*ncam+3+(namelen+3)//4,),numpy.int32)
 cameraParams[0:ncam]=8#8 bpp - cam0, cam1
 cameraParams[ncam:2*ncam]=5184#block size
 cameraParams[2*ncam:3*ncam]=0#x offset
@@ -143,6 +143,8 @@ cameraParams[9*ncam+1:10*ncam+1]=-1#affinity
 cameraParams[10*ncam+1]=namelen#number of bytes for the name.
 cameraParams[10*ncam+2:10*ncam+2+(namelen+3)//4].view("c")[:]=camNames
 cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
+cameraParams[10*ncam+2+(namelen+3)//4+1:11*ncam+2+(namelen+3)//4+1]=[1]+[0]*(ncam-1)#multicastMaster
+cameraParams[11*ncam+2+(namelen+3)//4+1:12*ncam+2+(namelen+3)//4+1]=(225<<24)+250#multicast address - 225.0.0.250
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
@@ -191,7 +193,7 @@ control={
     "clearErrors":0,
     "camerasOpen":1,
     "camerasFraming":1,
-    "cameraName":"libcamAravis.so",#"camfile",
+    "cameraName":"libcamAravisMultiTest.so",#"camfile",
     "cameraParams":cameraParams,
     "mirrorName":"libmirror.so",
     "mirrorParams":None,
