@@ -87,6 +87,8 @@ typedef struct{
   int *offsetX;
   int *offsetY;
   int *byteswapInts;
+  int *multicastMaster;
+  int *multicastAddr;
   struct timeval *timestamp;
   int recordTimestamp;//option to use timestamp of last pixel arriving rather than frame number.
   int auto_socket_buffer;
@@ -173,6 +175,8 @@ void dofree(CamStruct *camstr){
     safefree(camstr->reorderBuf);
     safefree(camstr->reorderno);
     safefree(camstr->reorderIndx);
+    safefree(camstr->multicastMaster);
+    safefree(camstr->multicastAddr);
 
     safefree(camstr->frameReady);
     safefree(camstr->bufArrList);
@@ -449,6 +453,30 @@ int byteswap(int a){
   return a;
 }
 
+/*Note:
+For a camera started elsewhere, that is multicasting, this function should just subscribe to the multicast.
+To do this, just need to call arv_gv_stream_new(...)  (see arvgvdevice.c for example to get the arguments).
+A call to arv_open_device will be required, to get the device info (packet size, etc).  
+Then also need to add self to the multicast group:
+g_socket_join_multicast_group (GSocket *socket,
+                               GInetAddress *group,
+                               gboolean source_specific,  (FALSE?)
+                               const gchar *iface,  (NULL?)
+                               GError **error);  (NULL?)
+
+But, have to see if this works, because it will already be listening on the socket, waiting for data...  YES - I think it will work (tested in python)
+Note, this instance shouldn't do any of the camera setup stuff...
+
+Will also need one instance of darc to be the camera controller... to set it going in multicast mode...
+To do this, see arvgvdevice, in function arv_gv_device_create_stream.  Essentially, need to call;
+	b1=arv_device_write_register (device, ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,
+				      g_htonl(*((guint32 *) address_bytes)), NULL);
+Might be easiest to do this here, after the arv_camera_create_stream has been called, and before start_acquisition() called.
+And then add self to the multicast group (see note above).  
+ 
+May also need to set SO_REUSEADDR somewhere if running from same machine.
+
+*/
 int startCamera(CamStruct *camstr,int cam){
   ArvCamera *camera;
   ArvStream *stream;
@@ -461,85 +489,123 @@ int startCamera(CamStruct *camstr,int cam){
   //camstr->t1[cam].tv_usec=0;
   //camstr->camName=camName;
   //camstr->main_loop=NULL;
-  printf("Looking for camera '%s'\n",camstr->camNameList[cam]);
-  camera = arv_camera_new (camstr->camNameList[cam]);
-  camstr->camera[cam]=camera;
-  if (camera != NULL) {
-    gint payload;
-    gint x, y, width, height;
-    gint dx, dy;
-    double exposure;
-    int gain;
-    int ox,oy,nx,ny;
-    //guint software_trigger_source = 0;
-    ArvBuffer **bufArr;
-    bufArr=&camstr->bufArrList[cam*NBUF];
-    if(camstr->byteswapInts[cam]){
-      ox=byteswap(camstr->offsetX[cam]);
-      oy=byteswap(camstr->offsetY[cam]);
-      nx=byteswap(camstr->campxlx[cam]);
-      ny=byteswap(camstr->campxly[cam]);
-    }else{
-      ox=camstr->offsetX[cam];
-      oy=camstr->offsetY[cam];
-      nx=camstr->campxlx[cam];
-      ny=camstr->campxly[cam];
-    }
-    arv_camera_set_region (camera, ox,oy,nx,ny);
-    //arv_camera_set_binning (camera, arv_option_horizontal_binning, arv_option_vertical_binning);//no binning at the moment
-    //arv_camera_set_exposure_time (camera, arv_option_exposure_time_us);
-    //arv_camera_set_gain (camera, arv_option_gain);  
-    arv_camera_get_region (camera, &x, &y, &width, &height);
-    arv_camera_get_binning (camera, &dx, &dy);
-    exposure = arv_camera_get_exposure_time (camera);
-    payload = arv_camera_get_payload (camera);
-    gain = arv_camera_get_gain (camera);
-    
-    printf ("vendor name         = %s\n", arv_camera_get_vendor_name (camera));
-    printf ("model name          = %s\n", arv_camera_get_model_name (camera));
-    printf ("device id           = %s\n", arv_camera_get_device_id (camera));
-    printf ("image width         = %d\n", width);
-    printf ("image height        = %d\n", height);
-    printf ("horizontal binning  = %d\n", dx);
-    printf ("vertical binning    = %d\n", dy);
-    printf ("payload             = %d bytes\n", payload);
-    printf ("exposure (?)        = %g µs\n", exposure);
-    printf ("gain                = %d dB\n", gain);
-    //sleep(1);
-    //myData.buffer_count=0;
-    //data->prevBuffer=NULL;//was myData
-    //camstr->prevBuffer[cam]=NULL;
-    ((ThreadStruct*)camstr->thrStruct)[cam].camNo=cam;
-    ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
-    stream = arv_camera_create_stream (camera, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam]);//was myData
-    //camInfo->stream=stream;
-    camstr->stream[cam]=stream;
-    //data->stream=stream;//was myData
-    //*streamPtr=stream;
-    if (stream != NULL) {
-      if (ARV_IS_GV_STREAM (stream)) {
-	if (camstr->auto_socket_buffer)
-	  g_object_set (stream,"socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,"socket-buffer-size", 0,NULL);
-	else
-	  g_object_set (stream,"socket-buffer-size",camstr->socket_buffer_size,0,NULL);
-	if (camstr->no_packet_resend)
-	  g_object_set (stream,"packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER,NULL);
-	g_object_set (stream,"packet-timeout", (unsigned) camstr->packet_timeout * 1000,"frame-retention", (unsigned) camstr->frame_retention * 1000,NULL);
+  if(camstr->multicastMaster[cam]==1 || camstr->multicastAddr[cam]==0){//either not multicasting (so, sole owner of camera), or the master (so setting up the camera)
+    printf("Looking for camera '%s'\n",camstr->camNameList[cam]);
+    camera = arv_camera_new (camstr->camNameList[cam]);
+    camstr->camera[cam]=camera;
+    if (camera != NULL) {
+      gint payload;
+      gint x, y, width, height;
+      gint dx, dy;
+      double exposure;
+      int gain;
+      int ox,oy,nx,ny;
+      //guint software_trigger_source = 0;
+      ArvBuffer **bufArr;
+      bufArr=&camstr->bufArrList[cam*NBUF];
+      if(camstr->byteswapInts[cam]){
+	ox=byteswap(camstr->offsetX[cam]);
+	oy=byteswap(camstr->offsetY[cam]);
+	nx=byteswap(camstr->campxlx[cam]);
+	ny=byteswap(camstr->campxly[cam]);
+      }else{
+	ox=camstr->offsetX[cam];
+	oy=camstr->offsetY[cam];
+	nx=camstr->campxlx[cam];
+	ny=camstr->campxly[cam];
       }
-      for (i = 0; i < NBUF; i++){
-	bufArr[i]=arv_buffer_new(payload,NULL);
-	arv_stream_push_buffer (stream, bufArr[i]);
+      arv_camera_set_region (camera, ox,oy,nx,ny);
+      //arv_camera_set_binning (camera, arv_option_horizontal_binning, arv_option_vertical_binning);//no binning at the moment
+      //arv_camera_set_exposure_time (camera, arv_option_exposure_time_us);
+      //arv_camera_set_gain (camera, arv_option_gain);  
+      arv_camera_get_region (camera, &x, &y, &width, &height);
+      arv_camera_get_binning (camera, &dx, &dy);
+      exposure = arv_camera_get_exposure_time (camera);
+      payload = arv_camera_get_payload (camera);
+      gain = arv_camera_get_gain (camera);
+      
+      printf ("vendor name         = %s\n", arv_camera_get_vendor_name (camera));
+      printf ("model name          = %s\n", arv_camera_get_model_name (camera));
+      printf ("device id           = %s\n", arv_camera_get_device_id (camera));
+      printf ("image width         = %d\n", width);
+      printf ("image height        = %d\n", height);
+      printf ("horizontal binning  = %d\n", dx);
+      printf ("vertical binning    = %d\n", dy);
+      printf ("payload             = %d bytes\n", payload);
+      printf ("exposure (?)        = %g µs\n", exposure);
+      printf ("gain                = %d dB\n", gain);
+      //sleep(1);
+      //myData.buffer_count=0;
+      //data->prevBuffer=NULL;//was myData
+      //camstr->prevBuffer[cam]=NULL;
+      ((ThreadStruct*)camstr->thrStruct)[cam].camNo=cam;
+      ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
+      stream = arv_camera_create_stream (camera, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam]);//was myData
+      //camInfo->stream=stream;
+      camstr->stream[cam]=stream;
+      //data->stream=stream;//was myData
+      //*streamPtr=stream;
+      if (stream != NULL) {
+	if (ARV_IS_GV_STREAM (stream)) {
+	  if (camstr->auto_socket_buffer)
+	    g_object_set (stream,"socket-buffer", ARV_GV_STREAM_SOCKET_BUFFER_AUTO,"socket-buffer-size", 0,NULL);
+	  else
+	    g_object_set (stream,"socket-buffer-size",camstr->socket_buffer_size,0,NULL);
+	  if (camstr->no_packet_resend)
+	    g_object_set (stream,"packet-resend", ARV_GV_STREAM_PACKET_RESEND_NEVER,NULL);
+	  g_object_set (stream,"packet-timeout", (unsigned) camstr->packet_timeout * 1000,"frame-retention", (unsigned) camstr->frame_retention * 1000,NULL);
+	}
+	for (i = 0; i < NBUF; i++){
+	  bufArr[i]=arv_buffer_new(payload,NULL);
+	  arv_stream_push_buffer (stream, bufArr[i]);
+	}
+	//data->bufArr=bufArr;
+	arv_camera_set_acquisition_mode (camera, ARV_ACQUISITION_MODE_CONTINUOUS);
+	if(camstr->multicastAddr[cam]!=0){
+	  //set the register to the multicast address (overwriting own address)
+	  arv_device_write_register (arv_camera_get_device(camera), ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,g_htonl(camstr->multicastAddr[cam]), NULL);
+	  //and also subscribe self...
+	  int nval=g_htonl(camstr->multicastAddr[cam]);
+	  GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
+	  gboolean source_specific=FALSE;
+	  g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific,  NULL,NULL);
+
+	}
+
+	arv_camera_start_acquisition (camera);//starts a new thread...
+      }else{
+	printf ("Can't create stream thread (check if the device is not already used)\n");
+	rt=1;
       }
-      //data->bufArr=bufArr;
-      arv_camera_set_acquisition_mode (camera, ARV_ACQUISITION_MODE_CONTINUOUS);
-      arv_camera_start_acquisition (camera);//starts a new thread...
     }else{
-      printf ("Can't create stream thread (check if the device is not already used)\n");
+      printf ("No camera found\n");
       rt=1;
     }
-  }else{
-    printf ("No camera found\n");
-    rt=1;
+  }else{//a multicast subscriber (but not controller)
+    ArvGvDevice *gv_device;
+    //ArvGvDeviceIOData *io_data;
+    GInetAddress *device_address;
+    guint32 packet_size;
+    ArvDevice *device;
+    int port=0;//may need to get this from the camera???
+    device=arv_open_device(camstr->camNameList[cam]);
+    gv_device = ARV_GV_DEVICE (device);
+    //io_data = gv_device->priv->io_data;
+    device_address = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (arv_gv_device_get_device_address(ARV_GV_DEVICE(gv_device))));
+    packet_size = arv_gv_device_get_packet_size (gv_device);
+    printf("Packet size = %d bytes\n",packet_size);
+    ((ThreadStruct*)camstr->thrStruct)[cam].camNo=cam;
+    ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
+
+    //start the stream receiver going
+    stream = arv_gv_stream_new (device_address, port, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam],arv_gv_device_get_timestamp_tick_frequency (gv_device), packet_size);
+    //and join the multicast group.
+    int nval=g_htonl(camstr->multicastAddr[cam]);
+    GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
+    gboolean source_specific=FALSE;
+    g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific, NULL,NULL);
+    
+
   }
   return rt;
 }
@@ -667,6 +733,9 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   TEST(camstr->reorderno=calloc(ncam,sizeof(int)));
   TEST(camstr->reorderIndx=calloc(ncam,sizeof(int)));
   TEST(camstr->reorderBuf=calloc(ncam,sizeof(int*)));
+  TEST(camstr->multicastMaster=calloc(ncam,sizeof(int)));
+  TEST(camstr->multicastAddr=calloc(ncam,sizeof(int)));
+
 
   TEST(camstr->timestamp=calloc(ncam,sizeof(struct timeval)));
   TEST(camstr->mostRecentFilled=calloc(ncam,sizeof(ArvBuffer*)));
@@ -703,6 +772,9 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
   //length of names (a string with all camera IDs, semicolon separated).
   //The names as a string.
   //recordTimestamp
+  //multicastMaster[ncam]//if 1 and multicastAddr!=0, then this should set up camera for multicasting.
+  //multicastAddr[ncam]//if 0, not a multicast camera.  Else, an IP address, e.g. for 225.0.0.250, this would be (225<<24)+(0<<16)+(0<<8)+250.   Or, equivalently:  socket.ntohl(int(numpy.fromstring(socket.inet_aton("225.0.0.250"),numpy.int32)[0]))
+
   
   //So, we get these, then read the param buffer.  This will have:
   //aravisCmdN where N=0->ncam-1 which are the commands to configure the camera, semicolon separated.
@@ -801,6 +873,15 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     camstr->recordTimestamp=0;
   }
   nn++;
+  if(n>=nn+ncam*2){
+    for(i=0;i<ncam;i++){
+      camstr->multicastMaster[i]=args[nn+i];
+      camstr->multicastAddr[i]=args[nn+i+ncam];
+      printf("multicastMaster %d, address %d\n",camstr->multicastMaster[i],camstr->multicastAddr[i]);
+    }
+  }
+  nn+=ncam*2;
+
   printf("got args (recordTimestamp=%d)\n",camstr->recordTimestamp);
 
 
