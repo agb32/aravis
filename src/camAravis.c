@@ -563,11 +563,13 @@ int startCamera(CamStruct *camstr,int cam){
 	arv_camera_set_acquisition_mode (camera, ARV_ACQUISITION_MODE_CONTINUOUS);
 	if(camstr->multicastAddr[cam]!=0){
 	  //set the register to the multicast address (overwriting own address)
-	  arv_device_write_register (arv_camera_get_device(camera), ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,g_htonl(camstr->multicastAddr[cam]), NULL);
+	  printf("Writing multicast address to camera register\n");
+	  arv_device_write_register (arv_camera_get_device(camera), ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,camstr->multicastAddr[cam], NULL);
 	  //and also subscribe self...
 	  int nval=g_htonl(camstr->multicastAddr[cam]);
 	  GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
 	  gboolean source_specific=FALSE;
+	  printf("Joining multicast group (cam %d, ip %d)\n",cam,nval);
 	  g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific,  NULL,NULL);
 
 	}
@@ -598,11 +600,13 @@ int startCamera(CamStruct *camstr,int cam){
     ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
 
     //start the stream receiver going
+    printf("Starting multicast receiver for cam %d\n",cam);
     stream = arv_gv_stream_new (device_address, port, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam],arv_gv_device_get_timestamp_tick_frequency (gv_device), packet_size);
     //and join the multicast group.
     int nval=g_htonl(camstr->multicastAddr[cam]);
     GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
     gboolean source_specific=FALSE;
+    printf("Joining multicast group for cam %d\n",cam);
     g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific, NULL,NULL);
     
 
