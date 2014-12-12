@@ -234,7 +234,7 @@ void cameraCallbackTest(void *user_data, ArvStreamCallbackType type, ArvBuffer *
       //camstr->buffer_count[cam]++;
       arv_stream_push_buffer(stream,buf);
     }else{
-      printf("Failed to pop buffer for %s\n",camstr->camNameList[cam]);
+      printf("Pop buffer for %s\n",camstr->camNameList[cam]);
     }
   }
 }
@@ -357,7 +357,7 @@ void cameraCallback(void *user_data, ArvStreamCallbackType type, ArvBuffer *buff
       //camstr->buffer_count[cam]++;
       arv_stream_push_buffer(stream,buf);
     }else{
-      printf("Failed to pop buffer for %s\n",camstr->camNameList[cam]);
+      printf("Pop buffer for %s\n",camstr->camNameList[cam]);
     }
     //camstr->prevBuffer[cam]=buffer;
   }else if(type==ARV_STREAM_CALLBACK_TYPE_INIT){//this would be a good place to change thread priority and affinity.  Called about once.

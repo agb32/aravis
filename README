@@ -214,3 +214,17 @@ make -f Makefile.darc install
 cp ../conf/configBobcat2cam.py /rtc/conf
 
 If you get an error, check that the config file is pointing to the 2 cameras you want to use...
+
+
+
+FOR multicasting:
+If it doesn't work out of the box, try the following settings
+echo 0 > /proc/sys/net/ipv4/conf/all/rp_filter 
+echo 0 > /proc/sys/net/ipv4/conf/eth10/rp_filter 
+echo 0 > /proc/sys/net/ipv4/icmp_echo_ignore_broadcasts
+Or 2...
+ifconfig eth10 promisc
+
+For multicasting, in the config file, need to specify the multicast
+address, and also whether you are the camera master (responsible for
+setting everything up).  And, it should be that simple!
