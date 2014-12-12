@@ -29,6 +29,9 @@ The library is written for a specific camera configuration - ie in multiple came
 #include <errno.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/types.h>//setsockopt
+#include <sys/socket.h>//setsockopt
+#include <netinet/in.h>//struct ip_mreq
 //#include <unistd.h>
 #include <pthread.h>
 #include "darc.h"
@@ -567,11 +570,19 @@ int startCamera(CamStruct *camstr,int cam){
 	  arv_device_write_register (arv_camera_get_device(camera), ARV_GVBS_STREAM_CHANNEL_0_IP_ADDRESS_OFFSET,camstr->multicastAddr[cam], NULL);
 	  //and also subscribe self...
 	  int nval=g_htonl(camstr->multicastAddr[cam]);
-	  GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
-	  gboolean source_specific=FALSE;
+	  //int nval=camstr->multicastAddr[cam];
+	  //GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
+	  //GInetAddress *group=g_inet_address_new_any(G_SOCKET_FAMILY_IPV4);//from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
+	  //gboolean source_specific=FALSE;
 	  printf("Joining multicast group (cam %d, ip %d)\n",cam,nval);
-	  g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific,  NULL,NULL);
-
+	  //maybe this isn't working?  Try setsocketopt?
+	  //g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific,  NULL,NULL);
+	  struct ip_mreq mreq;
+	  int sock;
+	  sock=g_socket_get_fd(ARV_GV_STREAM(stream)->socket);
+	  mreq.imr_multiaddr.s_addr=nval;
+	  mreq.imr_interface.s_addr=0;//any
+	  setsockopt(sock,IPPROTO_IP,IP_ADD_MEMBERSHIP,&mreq,sizeof(mreq));
 	}
 
 	arv_camera_start_acquisition (camera);//starts a new thread...
@@ -588,27 +599,61 @@ int startCamera(CamStruct *camstr,int cam){
     //ArvGvDeviceIOData *io_data;
     GInetAddress *device_address;
     guint32 packet_size;
+    guint64 tickfreq;
     ArvDevice *device;
-    int port=0;//may need to get this from the camera???
+    guint32 port=0;//may need to get this from the camera???
+    ArvBuffer **bufArr;
+    gint payload;
+
+    bufArr=&camstr->bufArrList[cam*NBUF];
+
     device=arv_open_device(camstr->camNameList[cam]);
     gv_device = ARV_GV_DEVICE (device);
+    payload=arv_device_get_integer_feature_value (device, "PayloadSize");
+
     //io_data = gv_device->priv->io_data;
     device_address = g_inet_socket_address_get_address (G_INET_SOCKET_ADDRESS (arv_gv_device_get_device_address(ARV_GV_DEVICE(gv_device))));
-    packet_size = arv_gv_device_get_packet_size (gv_device);
-    printf("Packet size = %d bytes\n",packet_size);
-    ((ThreadStruct*)camstr->thrStruct)[cam].camNo=cam;
-    ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
-
-    //start the stream receiver going
-    printf("Starting multicast receiver for cam %d\n",cam);
-    stream = arv_gv_stream_new (device_address, port, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam],arv_gv_device_get_timestamp_tick_frequency (gv_device), packet_size);
-    //and join the multicast group.
-    int nval=g_htonl(camstr->multicastAddr[cam]);
-    GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
-    gboolean source_specific=FALSE;
-    printf("Joining multicast group for cam %d\n",cam);
-    g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific, NULL,NULL);
+    if(arv_device_read_register (device, ARV_GVBS_STREAM_CHANNEL_0_PORT_OFFSET, &port, NULL)==FALSE){
+      printf("Couldn't get UDP multicast port from camera\n");
+      rt=1;
+    }else{
+      g_object_ref(device_address);
+      packet_size = arv_gv_device_get_packet_size (gv_device);
+      tickfreq=arv_gv_device_get_timestamp_tick_frequency (gv_device);
+      printf("Packet size = %d bytes, port %d\n",packet_size,port);
     
+      ((ThreadStruct*)camstr->thrStruct)[cam].camNo=cam;
+      ((ThreadStruct*)camstr->thrStruct)[cam].camstr=camstr;
+      //Do I need to do a arv_close_device (which doesn't exist)?
+      //Or a arv_gv_device_leave_control (ArvGvDevice *gv_device)?
+      g_object_unref (device);
+      //arv_device_finalize(device);
+      //arv_gv_device_leave_control (gv_device);
+      
+      //start the stream receiver going
+      printf("Starting multicast receiver for cam %d, port %d\n",cam,port);
+      stream = arv_gv_stream_new (device_address, port, cameraCallback, &((ThreadStruct*)camstr->thrStruct)[cam],tickfreq, packet_size);
+      g_object_unref(device_address);
+      camstr->stream[cam]=stream;
+
+      for (i = 0; i < NBUF; i++){
+	bufArr[i]=arv_buffer_new(payload,NULL);
+	arv_stream_push_buffer (stream, bufArr[i]);
+      }
+
+      //and join the multicast group.
+      int nval=g_htonl(camstr->multicastAddr[cam]);
+      //GInetAddress *group=g_inet_address_new_from_bytes((guint8*)&nval,G_SOCKET_FAMILY_IPV4);
+      //gboolean source_specific=FALSE;
+      printf("Joining multicast group for cam %d\n",cam);
+      //g_socket_join_multicast_group (ARV_GV_STREAM(stream)->socket,group,source_specific, NULL,NULL);
+      struct ip_mreq mreq;
+      int sock;
+      sock=g_socket_get_fd(ARV_GV_STREAM(stream)->socket);
+      mreq.imr_multiaddr.s_addr=nval;
+      mreq.imr_interface.s_addr=0;//any
+      setsockopt(sock,IPPROTO_IP,IP_ADD_MEMBERSHIP,&mreq,sizeof(mreq));
+    }
 
   }
   return rt;
