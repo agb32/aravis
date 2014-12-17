@@ -16,6 +16,8 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
+#This camera is 192.168.1.69.  Hard coded.
+
 #import correlation
 import string
 import FITS
