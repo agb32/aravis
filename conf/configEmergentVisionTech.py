@@ -16,6 +16,8 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
+#This camera is 192.168.1.69.  Hard coded.
+
 #import correlation
 import string
 import FITS
@@ -105,7 +107,7 @@ print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
-cameraParams=numpy.zeros((6*ncam+3+(namelen+3)//4,),numpy.int32)
+cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
 cameraParams[0:ncam]=8#8 bpp
 cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
 cameraParams[2*ncam:3*ncam]=0#x offset
