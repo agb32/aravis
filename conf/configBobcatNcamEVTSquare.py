@@ -16,40 +16,71 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
-#import correlation
+#This one does N bobcats, and then the EVT.
+#Also, does with square images... ie sub-windows the detectors.
+
 import string
 import FITS
 import tel
 import numpy
-
-nacts=54#97#54#+256
-ncam=1
-
+try:
+    print prefix
+except:
+    prefix="bob"
+    print prefix
+nactXinetics=96
+nacts=nactXinetics+1024
+if prefix[:3]=="bob":
+    if len(prefix)>3:
+        try:
+            ncam=int(prefix[3:])
+        except:
+            ncam=1
+    else:
+        ncam=1
+else:
+    try:
+        ncam=int(prefix)
+    except:
+        ncam=4
+ncam+=1 #Add the EVT.
+print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
+ncamThreads[-1]=2
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=128#134  #Email from nuvu says 134, but aravis says 128!
+npxly[:]=488
+npxly[-1]=1088#EVT
 npxlx=npxly.copy()
-npxlx[:]=128#136
+npxlx[:]=488#648
+npxlx[-1]=1088#2048#EVT
 nsuby=npxlx.copy()
-nsuby[:]=30#for config purposes only... not sent to rtc
+nsuby[:]=31#for config purposes only... not sent to rtc
+nsuby[-1]=62#the EVT
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
 nsub=nsubx*nsuby#This is used by rtc.
 nsubaps=nsub.sum()#(nsuby*nsubx).sum()
-individualSubapFlag=tel.Pupil(30,15,2,30).subflag.astype("i")
+individualSubapFlag=tel.Pupil(31,15.5,2,31).subflag.astype("i")
 subapFlag=numpy.zeros((nsubaps,),"i")
-for i in range(ncam):
+for i in range(ncam-1):
     tmp=subapFlag[nsub[:i].sum():nsub[:i+1].sum()]
     tmp.shape=nsuby[i],nsubx[i]
     tmp[:]=individualSubapFlag
+#now the EVT
+tmp=subapFlag[nsub[:-1].sum():nsub.sum()]
+tmp.shape=nsuby[-1],nsubx[-1]
+tmp[:31,:31]=individualSubapFlag
+tmp[31:,:31]=individualSubapFlag
+tmp[:31,31:]=individualSubapFlag
+tmp[31:,31:]=individualSubapFlag
 #ncents=nsubaps*2
 ncents=subapFlag.sum()*2
 npxls=(npxly*npxlx).sum()
 
-fakeCCDImage=None
+fakeCCDImage=None#(numpy.random.random((npxls,))*20).astype("i")
 
-bgImage=None
-darkNoise=None
-flatField=None
+bgImage=None#FITS.Read("shimgb1stripped_bg.fits")[1].astype("f")#numpy.zeros((npxls,),"f")
+darkNoise=None#FITS.Read("shimgb1stripped_dm.fits")[1].astype("f")
+flatField=None#FITS.Read("shimgb1stripped_ff.fits")[1].astype("f")
 
 subapLocation=numpy.zeros((nsubaps,6),"i")
 nsubapsCum=numpy.zeros((ncam+1,),numpy.int32)
@@ -60,16 +91,23 @@ for i in range(ncam):
 
 # now set up a default subap location array...
 #this defines the location of the subapertures.
-subx=(npxlx)/nsubx
-suby=(npxly)/nsuby
-xoff=[0]*ncam
-yoff=[0]*ncam
+
+subx=numpy.array([14]*ncam)#(npxlx-nsubx*14)/nsubx
+suby=numpy.array([14]*ncam)#(npxly-8)/nsuby
+xoff=(npxlx-nsubx*subx)/2#[84]*ncam
+yoff=(npxly-nsuby*suby)/2#[4]*ncam
+#And now the EVT
+#k=ncam-1
+#subx[k]=(npxlx[k]-1088)/nsubx[k]
+#suby[k]=(npxly[k]-128)/nsuby[k]
+#xoff[k]=544
+#yoff[k]=64
 for k in range(ncam):
     for i in range(nsuby[k]):
         for j in range(nsubx[k]):
             indx=nsubapsCum[k]+i*nsubx[k]+j
             subapLocation[indx]=(yoff[k]+i*suby[k],yoff[k]+i*suby[k]+suby[k],1,xoff[k]+j*subx[k],xoff[k]+j*subx[k]+subx[k],1)
-print "Max subap extend: ",subapLocation[:,1].max(),subapLocation[:,4].max()
+
 pxlCnt=numpy.zeros((nsubaps,),"i")
 # set up the pxlCnt array - number of pixels to wait until each subap is ready.  Here assume identical for each camera.
 for k in range(ncam):
@@ -79,7 +117,12 @@ for k in range(ncam):
         #n=(subapLocation[indx,1]-1)*npxlx[k]+subapLocation[indx,4]
         n=subapLocation[indx,1]*npxlx[k]#whole rows together...
         pxlCnt[indx]=n
-
+#set the last pixel counts to full image...
+for k in range(ncam):
+    sf=subapFlag[nsub[:k].sum():nsub[:k+1].sum()]
+    indx=numpy.where(sf==1)[0][-1]
+    pxlCnt[indx+nsub[:k].sum()]=npxlx[k]*npxly[k]
+#pxlCnt[-13]=1088*2048
 #pxlCnt[-5]=128*256
 #pxlCnt[-6]=128*256
 #pxlCnt[nsubaps/2-5]=128*256
@@ -99,16 +142,19 @@ for k in range(ncam):
   //The names as a string.
   //recordTimestamp
 """
-camList=["Pleora Technologies Inc.-","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
+camList=["Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325"][:ncam-1]
+camList.append("EVT-20007")
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
 cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
-cameraParams[0:ncam]=16#16 bpp
-cameraParams[ncam:2*ncam]=2176#block size
-cameraParams[2*ncam:3*ncam]=0#x offset
+cameraParams[0:ncam]=8#8 bpp - cam0, cam1
+cameraParams[ncam:2*ncam]=15616#20736#block size - 32 rows
+cameraParams[2*ncam-1]=65536#EVT block size.
+cameraParams[2*ncam:3*ncam]=80#x offset
+cameraParams[3*ncam-1]=480#x offset, EVT
 cameraParams[3*ncam:4*ncam]=0#y offset
 cameraParams[4*ncam:5*ncam]=npxlx#campxlx
 cameraParams[5*ncam:6*ncam]=npxly#campxly
@@ -116,14 +162,41 @@ cameraParams[6*ncam:7*ncam]=0#byteswapints
 cameraParams[7*ncam:8*ncam]=0#reorder
 cameraParams[8*ncam:9*ncam]=50#priority
 cameraParams[9*ncam]=1#affin el size
-cameraParams[9*ncam+1:10*ncam+1]=-1#affinity
+cameraParams[9*ncam+1:10*ncam+1]=0xfc0fc0#affinity
 cameraParams[10*ncam+1]=namelen#number of bytes for the name.
 cameraParams[10*ncam+2:10*ncam+2+(namelen+3)//4].view("c")[:]=camNames
 cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
+bobcamCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
+evtcamCommand="FrameRate=20;"
+print ncents,nacts
+
+
+host="10.0.2.10"
+while len(host)%4!=0:
+    host+='\0'
+mirrorName="libmirrorPdAO32Socket.so"
+mirrorParams=numpy.zeros((7+len(host)//4,),"i")
+mirrorParams[0]=1#affin elsize
+mirrorParams[1]=1#priority
+mirrorParams[2]=-1#affinity
+mirrorParams[3]=0#timeout
+mirrorParams[4]=4288#port on receiver
+mirrorParams[5]=0#send prefix
+mirrorParams[6]=0#as float
+mirrorParams[7:]=numpy.fromstring(host,dtype="i")
+actInit=None#numpy.ones((96,),numpy.uint16)*32768
+actMin=numpy.zeros((nacts,),numpy.uint16)
+actMin[:nactXinetics]=32768#don't let xinetics go below 0V.
+actMax=numpy.ones((nacts,),numpy.uint16)*65535
+actOffset=None
+actMapping=None
+actSource=None
+actScale=None
+actPower=None
+
 
 
 control={
@@ -139,8 +212,8 @@ control={
     "centroidWeight":None,
     "v0":numpy.ones((nacts,),"f")*32768,#v0 from the tomograhpcic algorithm in openloop (see spec)
     "bleedGain":0.0,#0.05,#a gain for the piston bleed...
-    "actMax":numpy.ones((nacts,),numpy.uint16)*65535,#4095,#max actuator value
-    "actMin":numpy.zeros((nacts,),numpy.uint16),#4095,#max actuator value
+    "actMax":actMax,
+    "actMin":actMin,
     "nacts":nacts,
     "ncam":ncam,
     "nsub":nsub,
@@ -170,7 +243,7 @@ control={
     "camerasFraming":1,
     "cameraName":"libcamAravis.so",#"camfile",
     "cameraParams":cameraParams,
-    "mirrorName":"libmirror.so",
+    "mirrorName":"libmirrorPdAO32Socket.so",
     "mirrorParams":None,
     "mirrorOpen":0,
     "frameno":0,
@@ -213,7 +286,16 @@ control={
     "maxAdapOffset":0,
     "version":" "*120,
     #"lastActs":numpy.zeros((nacts,),numpy.uint16),
+    "actInit":actInit,
+    "actMapping":actMapping,
+    "actSource":actSource,
+    "actOffset":actOffset,
+    "actPower":actPower,
+    "actScale":actScale,
+    "nactInitPdao32":None,
+    "nactPdao32":nactXinetics,
     }
-for i in range(ncam):
-    control["aravisCmd%d"%i]=camCommand
+for i in range(ncam-1):
+    control["aravisCmd%d"%i]=bobcamCommand
+control["aravisCmd%d"%(ncam-1)]=evtcamCommand
 #control["pxlCnt"][-3:]=npxls#not necessary, but means the RTC reads in all of the pixels... so that the display shows whole image

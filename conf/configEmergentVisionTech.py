@@ -16,6 +16,8 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
+#This camera is 192.168.1.69.  Hard coded.
+
 #import correlation
 import string
 import FITS
@@ -24,12 +26,12 @@ import numpy
 
 nacts=54#97#54#+256
 ncam=1
-
+print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=128#134  #Email from nuvu says 134, but aravis says 128!
+npxly[:]=1088
 npxlx=npxly.copy()
-npxlx[:]=128#136
+npxlx[:]=2048
 nsuby=npxlx.copy()
 nsuby[:]=30#for config purposes only... not sent to rtc
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
@@ -45,11 +47,11 @@ for i in range(ncam):
 ncents=subapFlag.sum()*2
 npxls=(npxly*npxlx).sum()
 
-fakeCCDImage=None
+fakeCCDImage=None#(numpy.random.random((npxls,))*20).astype("i")
 
-bgImage=None
-darkNoise=None
-flatField=None
+bgImage=None#FITS.Read("shimgb1stripped_bg.fits")[1].astype("f")#numpy.zeros((npxls,),"f")
+darkNoise=None#FITS.Read("shimgb1stripped_dm.fits")[1].astype("f")
+flatField=None#FITS.Read("shimgb1stripped_ff.fits")[1].astype("f")
 
 subapLocation=numpy.zeros((nsubaps,6),"i")
 nsubapsCum=numpy.zeros((ncam+1,),numpy.int32)
@@ -60,16 +62,16 @@ for i in range(ncam):
 
 # now set up a default subap location array...
 #this defines the location of the subapertures.
-subx=(npxlx)/nsubx
-suby=(npxly)/nsuby
-xoff=[0]*ncam
-yoff=[0]*ncam
+subx=[10]*ncam#(npxlx-48)/nsubx
+suby=[10]*ncam#(npxly-8)/nsuby
+xoff=[24]*ncam
+yoff=[4]*ncam
 for k in range(ncam):
     for i in range(nsuby[k]):
         for j in range(nsubx[k]):
             indx=nsubapsCum[k]+i*nsubx[k]+j
             subapLocation[indx]=(yoff[k]+i*suby[k],yoff[k]+i*suby[k]+suby[k],1,xoff[k]+j*subx[k],xoff[k]+j*subx[k]+subx[k],1)
-print "Max subap extend: ",subapLocation[:,1].max(),subapLocation[:,4].max()
+
 pxlCnt=numpy.zeros((nsubaps,),"i")
 # set up the pxlCnt array - number of pixels to wait until each subap is ready.  Here assume identical for each camera.
 for k in range(ncam):
@@ -79,7 +81,7 @@ for k in range(ncam):
         #n=(subapLocation[indx,1]-1)*npxlx[k]+subapLocation[indx,4]
         n=subapLocation[indx,1]*npxlx[k]#whole rows together...
         pxlCnt[indx]=n
-
+pxlCnt[-12]=npxlx[0]*npxly[0]
 #pxlCnt[-5]=128*256
 #pxlCnt[-6]=128*256
 #pxlCnt[nsubaps/2-5]=128*256
@@ -99,32 +101,32 @@ for k in range(ncam):
   //The names as a string.
   //recordTimestamp
 """
-camList=["Pleora Technologies Inc.-","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
+camList=["EVT-20007"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
 cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
-cameraParams[0:ncam]=16#16 bpp
-cameraParams[ncam:2*ncam]=2176#block size
+cameraParams[0:ncam]=8#8 bpp
+cameraParams[ncam:2*ncam]=65536#block size - 32 rows in this case
 cameraParams[2*ncam:3*ncam]=0#x offset
 cameraParams[3*ncam:4*ncam]=0#y offset
-cameraParams[4*ncam:5*ncam]=npxlx#campxlx
-cameraParams[5*ncam:6*ncam]=npxly#campxly
-cameraParams[6*ncam:7*ncam]=0#byteswapints
+cameraParams[4*ncam:5*ncam]=npxlx#camnpxlx
+cameraParams[5*ncam:6*ncam]=npxly#camnpxly
+cameraParams[6*ncam:7*ncam]=0#byteswap
 cameraParams[7*ncam:8*ncam]=0#reorder
 cameraParams[8*ncam:9*ncam]=50#priority
 cameraParams[9*ncam]=1#affin el size
-cameraParams[9*ncam+1:10*ncam+1]=-1#affinity
+cameraParams[9*ncam+1:10*ncam+1]=0xfc0fc0#affinity
 cameraParams[10*ncam+1]=namelen#number of bytes for the name.
 cameraParams[10*ncam+2:10*ncam+2+(namelen+3)//4].view("c")[:]=camNames
 cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
-
+camCommand="FrameRate=20;"
+#camCommand=None
 
 control={
     "switchRequested":0,#this is the only item in a currently active buffer that can be changed...
@@ -163,7 +165,7 @@ control={
     "gain":numpy.ones((nacts,),"f"),
     "E":numpy.zeros((nacts,nacts),"f"),#E from the tomoalgo in openloop.
     "threadAffinity":None,
-    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*10,
+    "threadPriority":numpy.ones((ncamThreads.sum()+1,),numpy.int32)*49,
     "delay":0,
     "clearErrors":0,
     "camerasOpen":1,
@@ -214,6 +216,7 @@ control={
     "version":" "*120,
     #"lastActs":numpy.zeros((nacts,),numpy.uint16),
     }
-for i in range(ncam):
-    control["aravisCmd%d"%i]=camCommand
+if camCommand!=None:
+    for i in range(ncam):
+        control["aravisCmd%d"%i]=camCommand
 #control["pxlCnt"][-3:]=npxls#not necessary, but means the RTC reads in all of the pixels... so that the display shows whole image

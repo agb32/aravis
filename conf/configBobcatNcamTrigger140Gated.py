@@ -16,26 +16,44 @@
 #This is a configuration file for CANARY.
 #Aim to fill up the control dictionary with values to be used in the RTCS.
 
-#import correlation
+#Controls bobcats and assumes an external trigger.
+
 import string
 import FITS
 import tel
 import numpy
+try:
+    print prefix
+except:
+    prefix="bob"
+    print prefix
 
 nacts=54#97#54#+256
-ncam=1
-
+if prefix[:3]=="bob":
+    if len(prefix)>3:
+        try:
+            ncam=int(prefix[3:])
+        except:
+            ncam=1
+    else:
+        ncam=1
+else:
+    try:
+        ncam=int(prefix)
+    except:
+        ncam=4
+print "Using %d cameras"%ncam
 ncamThreads=numpy.ones((ncam,),numpy.int32)*1
 npxly=numpy.zeros((ncam,),numpy.int32)
-npxly[:]=128#134  #Email from nuvu says 134, but aravis says 128!
+npxly[:]=140#488
 npxlx=npxly.copy()
-npxlx[:]=128#136
+npxlx[:]=140#648
 nsuby=npxlx.copy()
-nsuby[:]=30#for config purposes only... not sent to rtc
+nsuby[:]=15#for config purposes only... not sent to rtc
 nsubx=nsuby.copy()#for config purposes - not sent to rtc
 nsub=nsubx*nsuby#This is used by rtc.
 nsubaps=nsub.sum()#(nsuby*nsubx).sum()
-individualSubapFlag=tel.Pupil(30,15,2,30).subflag.astype("i")
+individualSubapFlag=tel.Pupil(15,7.5,1,15).subflag.astype("i")
 subapFlag=numpy.zeros((nsubaps,),"i")
 for i in range(ncam):
     tmp=subapFlag[nsub[:i].sum():nsub[:i+1].sum()]
@@ -45,11 +63,11 @@ for i in range(ncam):
 ncents=subapFlag.sum()*2
 npxls=(npxly*npxlx).sum()
 
-fakeCCDImage=None
+fakeCCDImage=None#(numpy.random.random((npxls,))*20).astype("i")
 
-bgImage=None
-darkNoise=None
-flatField=None
+bgImage=None#FITS.Read("shimgb1stripped_bg.fits")[1].astype("f")#numpy.zeros((npxls,),"f")
+darkNoise=None#FITS.Read("shimgb1stripped_dm.fits")[1].astype("f")
+flatField=None#FITS.Read("shimgb1stripped_ff.fits")[1].astype("f")
 
 subapLocation=numpy.zeros((nsubaps,6),"i")
 nsubapsCum=numpy.zeros((ncam+1,),numpy.int32)
@@ -60,8 +78,8 @@ for i in range(ncam):
 
 # now set up a default subap location array...
 #this defines the location of the subapertures.
-subx=(npxlx)/nsubx
-suby=(npxly)/nsuby
+subx=[8]*ncam#(npxlx-0)/nsubx
+suby=[8]*ncam#(npxly-0)/nsuby
 xoff=[0]*ncam
 yoff=[0]*ncam
 for k in range(ncam):
@@ -69,7 +87,7 @@ for k in range(ncam):
         for j in range(nsubx[k]):
             indx=nsubapsCum[k]+i*nsubx[k]+j
             subapLocation[indx]=(yoff[k]+i*suby[k],yoff[k]+i*suby[k]+suby[k],1,xoff[k]+j*subx[k],xoff[k]+j*subx[k]+subx[k],1)
-print "Max subap extend: ",subapLocation[:,1].max(),subapLocation[:,4].max()
+
 pxlCnt=numpy.zeros((nsubaps,),"i")
 # set up the pxlCnt array - number of pixels to wait until each subap is ready.  Here assume identical for each camera.
 for k in range(ncam):
@@ -79,6 +97,7 @@ for k in range(ncam):
         #n=(subapLocation[indx,1]-1)*npxlx[k]+subapLocation[indx,4]
         n=subapLocation[indx,1]*npxlx[k]#whole rows together...
         pxlCnt[indx]=n
+pxlCnt[numpy.nonzero(subapFlag)[0][-1]]=npxlx[0]*npxly[0]
 
 #pxlCnt[-5]=128*256
 #pxlCnt[-6]=128*256
@@ -99,19 +118,19 @@ for k in range(ncam):
   //The names as a string.
   //recordTimestamp
 """
-camList=["Pleora Technologies Inc.-","Imperx, inc.-110240","Imperx, inc.-110323","Imperx, inc.-110324","Imperx, inc.-110325","Imperx, inc.-110525","Imperx, inc.-110526","Imperx, inc.-110527","Imperx, inc.-110528"][:ncam]
+camList=["Imperx, inc.-110526","Imperx, inc.-110324","Imperx, inc.-110323","Imperx, inc.-110325"][:ncam]
 camNames=string.join(camList,";")#"Imperx, inc.-110323;Imperx, inc.-110324"
 print camNames
 while len(camNames)%4!=0:
     camNames+="\0"
 namelen=len(camNames)
 cameraParams=numpy.zeros((10*ncam+3+(namelen+3)//4,),numpy.int32)
-cameraParams[0:ncam]=16#16 bpp
-cameraParams[ncam:2*ncam]=2176#block size
+cameraParams[0:ncam]=8#8 bpp - cam0, cam1
+cameraParams[ncam:2*ncam]=npxlx*8#5184#block size
 cameraParams[2*ncam:3*ncam]=0#x offset
 cameraParams[3*ncam:4*ncam]=0#y offset
-cameraParams[4*ncam:5*ncam]=npxlx#campxlx
-cameraParams[5*ncam:6*ncam]=npxly#campxly
+cameraParams[4*ncam:5*ncam]=npxlx#camnpxlx
+cameraParams[5*ncam:6*ncam]=npxly#camnpxly
 cameraParams[6*ncam:7*ncam]=0#byteswapints
 cameraParams[7*ncam:8*ncam]=0#reorder
 cameraParams[8*ncam:9*ncam]=50#priority
@@ -123,8 +142,21 @@ cameraParams[10*ncam+2+(namelen+3)//4]=0#record timestamp
 
 rmx=numpy.random.random((nacts,ncents)).astype("f")
 
-camCommand="ProgFrameTimeEnable=true;ProgFrameTimeAbs=50000;"
+#camCommand="TriggerMode=Off;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=2000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=10;TriggerMode=On;"
 
+#This one works well - gets a ~500Hz rate with a 10kHz rate if numPulses==10, and 133Hz if numPulses=66.  And 151Hz if numPulses=58.
+camCommand="TriggerMode=Off;BinningHorizontal=x1;BinningVertical=x1;ProgFrameTimeEnable=false;GevSCPSPacketSize=9000;ProgFrameTimeAbs=2000;TriggerType=FrameAccumulation;ExposureTimeRaw=100;ExposureMode=Off;TriggerNumPulses=57;CenterScanMode=true;TriggerMode=On;"
+
+
+#Note - turn off trigger mode to set ProgFrameTimeEnable to false, then turn it back on...
+#TriggerType can be Fast - but doesn't seem to work well.
+#TriggerMode can be On/Off
+#EposureMode=Off  - seems to need to be Timed.
+#Note - ProgFrameTimeEnable should be false I think...
+#To test:  How is exposure time determined?  I suspect it may be giving full time - though could be wrong.
+
+#The key things here seem to be triggerType, and triggerMode and exposureMode.
+#Trigger box:  Width about 100, not inverted.
 
 control={
     "switchRequested":0,#this is the only item in a currently active buffer that can be changed...

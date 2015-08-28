@@ -1,0 +1,38 @@
+TODO:  Make this into valid latex
+
+Documentation here... of darc aravis module.
+
+Used with bobcat cameras so far, should work for any.
+
+conf/configBobcatNcam.py
+
+
+
+The prefix will determine number of cameras.
+If no prefix: 1 camera.
+If prefix==bob:  1 camera
+If prefix=N (N an integer):  That many cameras
+If prefix=bobN:  N cameras.
+Any other prefix: 4 cameras.
+
+Parameters for dynamic setting in darc (or in the initial config file):
+
+
+aravisCmd0,1,2,3 to set commands on individual cameras.
+aravisCmdAll to set on all of them.
+
+e.g.
+darcmagic set aravisCmdAll -string="ProgFrameTimeAbs=100000;" --prefix=bob4
+will set all to 100Hz.
+
+aravisGet can be used for getting parameters.
+darcmagic set aravisGet -string="?0:ProgFrameTimeAbs"
+darcmagic get aravisGet
+[which will return 100000, or whatever value is set].
+
+The number after the ? is the camera number to query.
+
+With multiple cameras >3, real-time OS seems to be necessary at higher frame rates.
+
+At a later date, I might try making the main loop more efficient in arvgvstream.c, by making the assumtion that packets appear in order (which is probably valid when cameras are connected directly).
+
