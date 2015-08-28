@@ -906,7 +906,7 @@ void* workerSL240(void *thrstrv){
 	      if(camstr->latestframe[cam]!=-1)
 		printf("Cam %d skipping: darc not keeping up/diff Hz/lost data\n",cam);
 	      if(camstr->curframe[cam]!=-1 && err==0){//not currently being read
-		printf("Pipeline read of cam %d not yet started\n",cam);
+		printf("Pipeline read of cam %d not yet started (the other cameras probably aren't producing pixels)\n",cam);
 		//camstr->latestframe[cam]=camstr->curframe[cam];
 		camstr->latestframe[cam]=-1;
 	      }else{

@@ -732,7 +732,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     memset(arr->pxlbufs,0,arr->pxlbufsSize);
   }
   camstr->imgdata=arr->pxlbufs;
-  if(n>5*ncam)
+  if(n>9*ncam)
     camstr->threadAffinElSize=args[9*ncam];
   else
     camstr->threadAffinElSize=1;
@@ -879,7 +879,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     for(i=0;i<ncam;i++)
       camstr->threadPriority[i]=args[8*ncam+i];
   }
-  //Note:  threadAffinElSize==args[5*ncam] (accessed previously)
+  //Note:  threadAffinElSize==args[9*ncam] (accessed previously)
   if(n>(9+camstr->threadAffinElSize)*ncam){
     for(i=0;i<ncam;i++)
       for(j=0;j<camstr->threadAffinElSize;j++)
