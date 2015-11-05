@@ -55,7 +55,7 @@ make
 sudo make install
 cd src
 make -f Makefile.darc
-cp libcamaravis.so /path/to/darc/lib/ #(eg /rtc/lib/ or /opt/darc/lib/)
+cp libcamAravis.so /path/to/darc/lib/ #(eg /rtc/lib/ or /opt/darc/lib/)
 arv-viewer
 
 
