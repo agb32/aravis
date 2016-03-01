@@ -36,3 +36,10 @@ libcamSL240AravisNOSL240.so: camSL240Aravis.c
 	ln -s libcamSL240AravisNOSL240.so.1 libcamSL240AravisNOSL240.so
 	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/darc/lib)"
 
+libcamSL240AravisNOCRC.so: camSL240Aravis.c
+	gcc -D_GNU_SOURCE -DNOCRCCHECK -DPLATFORM_UNIX -fPIC -O3 $(OPTS) -Wall -c camSL240Aravis.c `pkg-config --cflags glib-2.0` -I/rtc/include -I/opt/darc/include -I/opt/nsl/inc -I.	-o camSL240AravisNOCRC.o
+	gcc $(OPTS) -O3 -shared -Wl,-soname,libcamSL240AravisNOCRC.so.1 -o libcamSL240AravisNOCRC.so.1.0.1 camSL240AravisNOCRC.o -L. -lpthread -lc -L/opt/nsl/linux-current/lib -lnslapi arvbuffer.o               arvgcfloat.o arvcamera.o               arvgcgroupnode.o arvdebug.o                arvgcindexnode.o arvdevice.o               arvgcintegernode.o arvdomcharacterdata.o     arvgcinteger.o arvdomdocumentfragment.o  arvgcinvalidatornode.o arvdomdocument.o          arvgcnode.o arvdomelement.o           arvgc.o arvdomimplementation.o    arvgcport.o arvdomnamednodemap.o      arvgcpropertynode.o arvdomnodelist.o          arvgcregisterdescriptionnode.o arvdomnode.o              arvgcregisternode.o arvdomparser.o            arvgcregister.o arvdomtext.o              arvgcstring.o arvenums.o                arvgcstructentrynode.o arvenumtypes.o            arvgcswissknife.o arvevaluator.o            arvgcvariablenode.o           arvgvcp.o           arvgvdevice.o         arvgvinterface.o      arvgvsp.o            arvgvstream.o arvgcboolean.o            arvinterface.o arvgccategory.o           arvmisc.o arvgccommand.o            arvstream.o arvgcconverter.o          arvstr.o arvgcenumentry.o          arvsystem.o arvgcenumeration.o         arvgcfeaturenode.o   arvfakeinterface.o arvfakedevice.o  arvfakestream.o arvfakecamera.o  arvzip.o arvgcfloatnode.o  `pkg-config --cflags --libs dbus-1 dbus-glib-1  glib-2.0` -pthread -lgio-2.0 -lgobject-2.0 -lgmodule-2.0 -lxml2 -lgthread-2.0 -lrt -lglib-2.0 -lz -lm
+	/sbin/ldconfig -n ./
+	rm -f libcamSL240AravisNOCRC.so
+	ln -s libcamSL240AravisNOCRC.so.1 libcamSL240AravisNOCRC.so
+	echo "Remember to install (copy to /path/to/darc/lib - /rtc/lib or /opt/darc/lib)"

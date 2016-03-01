@@ -45,8 +45,13 @@ typedef unsigned int uint32;
 
 #include <arv.h>
 
-
+#ifdef NOCRCCHECK
+#define DOCRCCHECK 0 //for deli's new dongle
+#define HDRSIZE 12
+#else
+#define DOCRCCHECK 1
 #define HDRSIZE 8 //the size of a WPU header - 4 bytes for frame no, 4 bytes for something else.
+#endif
 
 //we use 4 buffers (instead of double buffering).
 #define NBUF 4
@@ -1450,7 +1455,7 @@ int camOpen(char *name,int n,int *args,paramBuf *pbuf,circBuf *rtcErrorBuf,char 
     status = nslSetState(&camstr->handle[i],NSL_EN_RETRANSMIT, 0);
     if (status != NSL_SUCCESS){
       printf("%s\n",nslGetErrStr(status));dofree(camstr);*camHandle=NULL;return 1;}
-    status = nslSetState(&camstr->handle[i],NSL_EN_CRC, 1);
+    status = nslSetState(&camstr->handle[i],NSL_EN_CRC, DOCRCCHECK);
     if (status != NSL_SUCCESS){
       printf("%s\n",nslGetErrStr(status));dofree(camstr);*camHandle=NULL;return 1;}
     status = nslSetState(&camstr->handle[i],NSL_EN_FLOW_CTRL, 0);
