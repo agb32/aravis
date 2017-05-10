@@ -108,6 +108,11 @@ smaller.  Also - might want to do something cleverer at some point to
 reduce memory...
 
 
+For a good overview of how to maximise network performance, have a
+look at:
+https://blog.cloudflare.com/how-to-achieve-low-latency/
+
+
 To change framerate etc... (bobcats)
 
 arv-tool-0.2 control ProgFrameTimeEnable=true
