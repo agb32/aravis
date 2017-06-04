@@ -384,8 +384,6 @@ int getData(CamStruct *camstr,int cam,int nbytes,int *dest){
     printf("%s\n", nslGetErrStr(status));
     rt=1;
   }
-  if(rt==0)//temporary time delay while debugging image tearing in June 2017.
-    usleep(30);
 #endif
   return rt;
 }
