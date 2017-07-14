@@ -55,7 +55,7 @@ typedef unsigned int uint32;
 
 //we use 4 buffers (instead of double buffering).
 #define NBUF 4
-#define BUFMASK 0x3
+
 /**
    The struct to hold info.
    If using multi cameras (ie multi SL240 cards or streams), would need to recode, so have multiple instances of this struct.
@@ -201,10 +201,15 @@ void dofree(CamStruct *camstr){
       }
       free(camstr->DMAbuf);
     }
+    
     for(i=0; i<camstr->ncam; i++){
-      pthread_cond_destroy(&camstr->camCond[i]);
-      pthread_cond_destroy(&camstr->camCond2[i]);
+      if(camstr->camCond)pthread_cond_destroy(&camstr->camCond[i]);
+      if(camstr->camCond2)pthread_cond_destroy(&camstr->camCond2[i]);
+      if(camstr->camMutex)pthread_mutex_destroy(&camstr->camMutex[i]);
     }
+    safefree(camstr->camCond);
+    safefree(camstr->camCond2);
+    safefree(camstr->camMutex);
 #ifdef RESYNC
     pthread_mutex_destroy(&camstr->m);
     pthread_cond_destroy(&camstr->thrcond);
@@ -941,10 +946,12 @@ void* workerSL240(void *thrstrv){
     //camstr->ntoread[cam]-=camstr->resync;
     //camstr->ntoread[cam]=1;
     camstr->err[NBUF*cam+bufindx]=err;
+    pthread_mutex_lock(&camstr->camMutex[cam]);
     if(err && camstr->waiting[cam]){//the RTC is waiting for the newest pixels, so wake it up, but an error has occurred.
       camstr->waiting[cam]=0;
       pthread_cond_broadcast(&camstr->camCond[cam]);
     }
+    pthread_mutex_unlock(&camstr->camMutex[cam]);
     //We've finished this frame, so:
     /*
     if(err==0){
