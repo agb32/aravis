@@ -55,7 +55,7 @@ typedef unsigned int uint32;
 
 //we use 4 buffers (instead of double buffering).
 #define NBUF 4
-#define BUFMASK 0x3
+
 /**
    The struct to hold info.
    If using multi cameras (ie multi SL240 cards or streams), would need to recode, so have multiple instances of this struct.
@@ -201,10 +201,15 @@ void dofree(CamStruct *camstr){
       }
       free(camstr->DMAbuf);
     }
+    
     for(i=0; i<camstr->ncam; i++){
-      pthread_cond_destroy(&camstr->camCond[i]);
-      pthread_cond_destroy(&camstr->camCond2[i]);
+      if(camstr->camCond)pthread_cond_destroy(&camstr->camCond[i]);
+      if(camstr->camCond2)pthread_cond_destroy(&camstr->camCond2[i]);
+      if(camstr->camMutex)pthread_mutex_destroy(&camstr->camMutex[i]);
     }
+    safefree(camstr->camCond);
+    safefree(camstr->camCond2);
+    safefree(camstr->camMutex);
 #ifdef RESYNC
     pthread_mutex_destroy(&camstr->m);
     pthread_cond_destroy(&camstr->thrcond);
@@ -835,12 +840,14 @@ void* workerSL240(void *thrstrv){
 #ifdef RESYNC
   pthread_mutex_unlock(&camstr->m);
 #endif
+  pthread_mutex_lock(&camstr->camMutex[cam]);//new
   //if(camstr->thrcnt==0){//first frame...
   camstr->transferframe[cam]=0;//rtcReading
   //camstr->last[cam]=-1;
   camstr->latestframe[cam]=-1;//mostRecentFilled
   camstr->curframe[cam]=-1;//currentFilling
-  //}
+   //}
+  pthread_mutex_unlock(&camstr->camMutex[cam]);//new
   clearReceiveBuffer(camstr,cam);
   while(camstr->open){
     //if(camstr->thrcnt==0){//first frame...
@@ -879,9 +886,11 @@ void* workerSL240(void *thrstrv){
       //printf("waitstartofframe %d (err %d), nRead %d\n",cam,err,nRead);
       if(err==0){
 	if(nRead==0){
+	  pthread_mutex_lock(&camstr->camMutex[cam]);//new
 	  //gettimeofday(&t1,NULL);
 	  //printf("Cam %d start time %d\n",cam,(int)t1.tv_usec);
 	  camstr->curframe[cam]=bufindx;
+	  camstr->pxlcnt[NBUF*cam+bufindx]=0;
 #ifdef RESYNC
 	  pthread_mutex_lock(&camstr->m);
 	  camstr->readHasStarted[cam]=1;
@@ -889,7 +898,9 @@ void* workerSL240(void *thrstrv){
 #endif
 	}
 	//now loop until we've read all the pixels.
-	((int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=0;//set frame counter to zero.
+	((int*)(&(camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))])))[0]=0;//set frame counter to zero.
+	if(nRead==0)
+	  pthread_mutex_unlock(&camstr->camMutex[cam]);//new
 	while(pxlcnt<camstr->npxlsArr[cam] && err==0){
 	  req=camstr->npxlsArr[cam]-pxlcnt<camstr->blocksize[cam]?camstr->npxlsArr[cam]-pxlcnt:camstr->blocksize[cam];
 	  if(pxlcnt==0){//first pixel - also transfer header.
@@ -920,7 +931,7 @@ void* workerSL240(void *thrstrv){
 	      camstr->curframe[cam]=-1;
 	      if(camstr->recordTimestamp){//an option to put camera frame number as time in us of last pixel arriving... useful for synchronising different cameras so that last pixel arrives at same time.
 		gettimeofday(&t1,NULL);
-		((unsigned int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))]))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
+		((unsigned int*)(&(camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(unsigned int))])))[0]=(unsigned int)(t1.tv_sec*1000000+t1.tv_usec);
 		//printf("Cam %d end time %d\n",cam,(int)t1.tv_usec);
 	      }
 	    }
@@ -932,7 +943,7 @@ void* workerSL240(void *thrstrv){
 	  }
 	}
       }else{//error getting start of frame
-	((int*)(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))]))[0]=0;//set frame counter to zero.
+	((int*)(&(camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))])))[0]=0;//set frame counter to zero.
 	memset(&camstr->DMAbuf[cam][bufindx*(camstr->npxlsArr[cam]+HDRSIZE/sizeof(int))+HDRSIZE/sizeof(int)],0,sizeof(int)*camstr->npxlsArr[cam]);
 	//printf("memset dmabuf\n");
       }
@@ -941,10 +952,12 @@ void* workerSL240(void *thrstrv){
     //camstr->ntoread[cam]-=camstr->resync;
     //camstr->ntoread[cam]=1;
     camstr->err[NBUF*cam+bufindx]=err;
+    pthread_mutex_lock(&camstr->camMutex[cam]);
     if(err && camstr->waiting[cam]){//the RTC is waiting for the newest pixels, so wake it up, but an error has occurred.
       camstr->waiting[cam]=0;
       pthread_cond_broadcast(&camstr->camCond[cam]);
     }
+    pthread_mutex_unlock(&camstr->camMutex[cam]);
     //We've finished this frame, so:
     /*
     if(err==0){
@@ -1839,8 +1852,11 @@ int camNewFrameSync(void *camHandle,unsigned int thisiter,double starttime){
   camstr->thisiter=thisiter;
   //printf("New frame\n");
   //camstr->newframeAll=1;
-  for(i=0;i<camstr->ncam; i++)
+  for(i=0;i<camstr->ncam; i++){
+    pthread_mutex_lock(&camstr->camMutex[i]);
     camstr->newframe[i]=1;
+    pthread_mutex_unlock(&camstr->camMutex[i]);
+  }
   //pthread_mutex_unlock(&camstr->m);
   return 0;
 }
@@ -1977,7 +1993,7 @@ int camWaitPixels(int n,int cam,void *camHandle){
       rt=1;
       camstr->setFrameNo[cam]=0;
     }
-    while(camstr->pxlcnt[NBUF*cam+camstr->transferframe[cam]]<n && rt==0 && camstr->camErr[cam]==0){
+    while(rt==0 && camstr->pxlcnt[NBUF*cam+camstr->transferframe[cam]]<n && camstr->camErr[cam]==0){
       camstr->waiting[cam]=1;
       pthread_cond_wait(&camstr->camCond[cam],&camstr->camMutex[cam]);
       rt=camstr->err[NBUF*cam+camstr->transferframe[cam]];
